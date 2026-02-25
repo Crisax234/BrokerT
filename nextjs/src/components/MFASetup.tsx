@@ -3,8 +3,10 @@ import { createSPASassClient } from '@/lib/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Key, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import {Factor} from "@supabase/auth-js";
-import { MFAEnrollTOTPParams } from '@supabase/auth-js';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Factor = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MFAEnrollTOTPParams = any;
 
 
 interface MFASetupProps {

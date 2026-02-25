@@ -4,12 +4,16 @@ import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {
     Home,
-    User,
+    Users,
+    UserCheck,
+    Building2,
+    ClipboardList,
+    Settings,
     Menu,
     X,
     ChevronDown,
     LogOut,
-    Key, Files, LucideListTodo,
+    Key,
 } from 'lucide-react';
 import { useGlobal } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
@@ -45,10 +49,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const productName = process.env.NEXT_PUBLIC_PRODUCTNAME;
 
     const navigation = [
-        { name: 'Homepage', href: '/app', icon: Home },
-        { name: 'Example Storage', href: '/app/storage', icon: Files },
-        { name: 'Example Table', href: '/app/table', icon: LucideListTodo },
-        { name: 'User Settings', href: '/app/user-settings', icon: User },
+        { name: 'Dashboard', href: '/app', icon: Home },
+        { name: 'Leads', href: '/app/leads', icon: Users },
+        { name: 'Mis Leads', href: '/app/leads/my-leads', icon: UserCheck },
+        { name: 'Stock', href: '/app/stock', icon: Building2 },
+        { name: 'Reservas', href: '/app/reservations', icon: ClipboardList },
+        { name: 'Settings', href: '/app/user-settings', icon: Settings },
     ];
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
@@ -79,7 +85,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {/* Navigation */}
                 <nav className="mt-4 px-2 space-y-1">
                     {navigation.map((item) => {
-                        const isActive = pathname === item.href;
+                        const isActive = item.href === '/app'
+                            ? pathname === '/app'
+                            : pathname.startsWith(item.href);
                         return (
                             <Link
                                 key={item.name}

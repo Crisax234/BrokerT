@@ -7,6 +7,7 @@ import Link from 'next/link';
 import SSOButtons from "@/components/SSOButtons";
 
 export default function RegisterPage() {
+    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,7 +34,7 @@ export default function RegisterPage() {
 
         try {
             const supabase = await createSPASassClient();
-            const { error } = await supabase.registerEmail(email, password);
+            const { error } = await supabase.registerEmail(email, password, fullName);
 
             if (error) throw error;
 
@@ -58,6 +59,24 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                        Full name
+                    </label>
+                    <div className="mt-1">
+                        <input
+                            id="fullName"
+                            name="fullName"
+                            type="text"
+                            autoComplete="name"
+                            required
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                        />
+                    </div>
+                </div>
+
                 <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                         Email address

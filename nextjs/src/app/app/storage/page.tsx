@@ -7,7 +7,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Upload, Download, Share2, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Copy } from 'lucide-react';
 import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
-import { FileObject } from '@supabase/storage-js';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FileObject = any;
 
 export default function FileManagementPage() {
     const { user } = useGlobal();

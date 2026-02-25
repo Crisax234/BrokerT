@@ -2,72 +2,89 @@
 import React from 'react';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { CalendarDays, Settings, ExternalLink } from 'lucide-react';
+import { Users, Building2, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
+import { AccountStatusCard } from '@/components/crm/AccountStatusCard';
 
 export default function DashboardContent() {
     const { loading, user } = useGlobal();
 
-    const getDaysSinceRegistration = () => {
-        if (!user?.registered_at) return 0;
-        const today = new Date();
-        const diffTime = Math.abs(today.getTime() - user.registered_at.getTime());
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    };
-
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
             </div>
         );
     }
 
-    const daysSinceRegistration = getDaysSinceRegistration();
-
     return (
         <div className="space-y-6 p-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Welcome, {user?.email?.split('@')[0]}! 👋</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4" />
-                        Member for {daysSinceRegistration} days
-                    </CardDescription>
-                </CardHeader>
-            </Card>
+            <h1 className="text-2xl font-bold">Bienvenido, {user?.full_name || user?.email?.split('@')[0]}</h1>
+
+            <AccountStatusCard />
+
+            {/* Lifetime Stats */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                            <p className="text-3xl font-bold">{user?.lifetime_lead_reservations ?? 0}</p>
+                            <p className="text-sm text-gray-500 mt-1">Leads reservados (hist&oacute;rico)</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                            <p className="text-3xl font-bold">{user?.lifetime_unit_reservations ?? 0}</p>
+                            <p className="text-sm text-gray-500 mt-1">Unidades reservadas (hist&oacute;rico)</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Quick Actions */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                    <CardDescription>Frequently used features</CardDescription>
+                    <CardTitle>Acciones R&aacute;pidas</CardTitle>
+                    <CardDescription>Accede a las funciones principales</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         <Link
-                            href="/app/user-settings"
+                            href="/app/leads"
                             className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                            <div className="p-2 bg-primary-50 rounded-full">
-                                <Settings className="h-4 w-4 text-primary-600" />
+                            <div className="p-2 bg-blue-50 rounded-full">
+                                <Users className="h-5 w-5 text-blue-600" />
                             </div>
                             <div>
-                                <h3 className="font-medium">User Settings</h3>
-                                <p className="text-sm text-gray-500">Manage your account preferences</p>
+                                <h3 className="font-medium">Explorar Leads</h3>
+                                <p className="text-sm text-gray-500">Buscar y reservar leads</p>
                             </div>
                         </Link>
-
                         <Link
-                            href="/app/table"
+                            href="/app/stock"
                             className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                         >
-                            <div className="p-2 bg-primary-50 rounded-full">
-                                <ExternalLink className="h-4 w-4 text-primary-600" />
+                            <div className="p-2 bg-green-50 rounded-full">
+                                <Building2 className="h-5 w-5 text-green-600" />
                             </div>
                             <div>
-                                <h3 className="font-medium">Example Page</h3>
-                                <p className="text-sm text-gray-500">Check out example features</p>
+                                <h3 className="font-medium">Ver Stock</h3>
+                                <p className="text-sm text-gray-500">Unidades disponibles</p>
+                            </div>
+                        </Link>
+                        <Link
+                            href="/app/reservations"
+                            className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <div className="p-2 bg-purple-50 rounded-full">
+                                <ClipboardList className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-medium">Reservas</h3>
+                                <p className="text-sm text-gray-500">Gestionar mis reservas</p>
                             </div>
                         </Link>
                     </div>

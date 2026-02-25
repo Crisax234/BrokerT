@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createSPASassClient } from '@/lib/supabase/client';
 import { CheckCircle, Smartphone } from 'lucide-react';
-import { Factor } from '@supabase/auth-js';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Factor = any;
 
 interface MFAVerificationProps {
     onVerified: () => void;
