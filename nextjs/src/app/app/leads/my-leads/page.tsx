@@ -88,7 +88,7 @@ export default function MyLeadsPage() {
 
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">Mis Leads Reservados</h1>
+            <h1 className="text-2xl font-bold">Mi Agenda</h1>
 
             <div className="flex flex-col lg:flex-row gap-6">
                 <LeadCalendar

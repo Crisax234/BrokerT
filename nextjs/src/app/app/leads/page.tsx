@@ -110,7 +110,7 @@ export default function LeadsBrowsingPage() {
             }
         } catch (err) {
             console.error('Reserve error:', err);
-            alert('Error al reservar lead');
+            alert('Error al agendar lead');
         } finally {
             setActionLoading(null);
         }
@@ -187,13 +187,13 @@ export default function LeadsBrowsingPage() {
                                 size="sm"
                                 disabled={actionLoading === leadId}
                             >
-                                {actionLoading === leadId ? 'Reservando...' : 'Reservar'}
+                                {actionLoading === leadId ? 'Reservando...' : 'Agendar'}
                             </Button>
                         }
-                        title="Reservar Lead"
-                        description="Al reservar este lead se consumira 1 reserva de plan o 1 credito. Se revelara la informacion de contacto."
+                        title="Agendar Lead"
+                        description="Al Agendar este lead se consumira 1 reserva de plan o 1 credito. Se revelara la informacion de contacto."
                         onConfirm={() => handleReserve(leadId)}
-                        confirmText="Reservar"
+                        confirmText="Agendar"
                     />
                 );
             },
