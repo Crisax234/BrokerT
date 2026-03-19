@@ -20,6 +20,7 @@ export type EnrichedLeadData = {
     score: number | null;
     status: string;
     reserved_at: string | null;
+    pipeline_stage: string;
 };
 
 export type ReservationRow = {

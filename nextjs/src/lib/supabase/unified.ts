@@ -173,6 +173,27 @@ export class SassClient {
             .order('reserved_at', { ascending: false });
     }
 
+    async updateLeadPipelineStage(leadId: string, stage: string) {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return { error: { message: 'Not authenticated' } };
+        return this.client
+            .from('leads')
+            .update({ pipeline_stage: stage })
+            .eq('id', leadId)
+            .eq('reserved_by', user.id);
+    }
+
+    async getReservationsForLead(leadId: string) {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return { data: null, error: { message: 'Not authenticated' } };
+        return this.client
+            .from('reservations')
+            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at)')
+            .eq('seller_id', user.id)
+            .eq('lead_id', leadId)
+            .order('reserved_at', { ascending: false });
+    }
+
     async reserveLead(leadId: string): Promise<RPCResult> {
         const { data: { user } } = await this.client.auth.getUser();
         if (!user) return { success: false, error: 'NOT_AUTHENTICATED' };

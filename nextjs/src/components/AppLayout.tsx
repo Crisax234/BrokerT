@@ -7,7 +7,6 @@ import {
     Users,
     UserCheck,
     Building2,
-    ClipboardList,
     Settings,
     Menu,
     X,
@@ -53,7 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { name: 'Leads', href: '/app/leads', icon: Users },
         { name: 'Mi Agenda', href: '/app/my-leads', icon: UserCheck },
         { name: 'Stock', href: '/app/stock', icon: Building2 },
-        { name: 'Reservas', href: '/app/reservations', icon: ClipboardList },
+        { name: 'Mis Clientes', href: '/app/reservations', icon: Users },
         { name: 'Settings', href: '/app/user-settings', icon: Settings },
     ];
 

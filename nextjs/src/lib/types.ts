@@ -166,6 +166,7 @@ export type Database = {
           metadata: Json | null
           occupation: string | null
           phone: string | null
+          pipeline_stage: string
           quality_tier: Database["public"]["Enums"]["lead_quality"]
           reserved_at: string | null
           reserved_by: string | null
@@ -199,6 +200,7 @@ export type Database = {
           metadata?: Json | null
           occupation?: string | null
           phone?: string | null
+          pipeline_stage?: string
           quality_tier?: Database["public"]["Enums"]["lead_quality"]
           reserved_at?: string | null
           reserved_by?: string | null
@@ -232,6 +234,7 @@ export type Database = {
           metadata?: Json | null
           occupation?: string | null
           phone?: string | null
+          pipeline_stage?: string
           quality_tier?: Database["public"]["Enums"]["lead_quality"]
           reserved_at?: string | null
           reserved_by?: string | null
@@ -1077,16 +1080,21 @@ export type Database = {
           cuota_credito_consumo?: number | null
           current_commune?: string | null
           dividendo_actual?: number | null
+          egresos_total?: never
           email?: never
           full_name?: never
           honorarios?: number | null
           id?: string | null
           liquidaciones?: number | null
+          max_dividendo?: never
           meeting_at?: string | null
           metadata?: Json | null
           occupation?: string | null
           phone?: never
           quality_tier?: Database["public"]["Enums"]["lead_quality"] | null
+          renta_total?: never
+          reserved_at?: string | null
+          reserved_by?: string | null
           retiros?: number | null
           rut?: never
           score?: number | null
@@ -1101,22 +1109,35 @@ export type Database = {
           cuota_credito_consumo?: number | null
           current_commune?: string | null
           dividendo_actual?: number | null
+          egresos_total?: never
           email?: never
           full_name?: never
           honorarios?: number | null
           id?: string | null
           liquidaciones?: number | null
+          max_dividendo?: never
           meeting_at?: string | null
           metadata?: Json | null
           occupation?: string | null
           phone?: never
           quality_tier?: Database["public"]["Enums"]["lead_quality"] | null
+          renta_total?: never
+          reserved_at?: string | null
+          reserved_by?: string | null
           retiros?: number | null
           rut?: never
           score?: number | null
           status?: Database["public"]["Enums"]["lead_status"] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_reserved_by_fkey"
+            columns: ["reserved_by"]
+            isOneToOne: false
+            referencedRelation: "seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

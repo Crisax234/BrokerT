@@ -8,8 +8,18 @@ import { RPCResult } from '@/lib/crm-types';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { formatUF } from '@/components/crm/FormatCurrency';
 import { StatusBadge } from '@/components/crm/StatusBadge';
-import { ConfirmDialog } from '@/components/crm/ConfirmDialog';
+import { LeadPickerDialog } from '@/components/crm/LeadPickerDialog';
 import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
     Table,
     TableBody,
@@ -27,7 +37,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ArrowLeft, Building2, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Building2, ChevronLeft, ChevronRight, MapPin, RefreshCw } from 'lucide-react';
 
 type UnitRow = Database['public']['Tables']['units']['Row'] & {
     projects: {
@@ -78,6 +88,12 @@ function StockPageContent() {
     // Selection
     const [selectedUnits, setSelectedUnits] = useState<Map<string, { unitNumber: string }>>(new Map());
     const [reserving, setReserving] = useState(false);
+
+    // Lead picker
+    const [leadPickerOpen, setLeadPickerOpen] = useState(false);
+    const [selectedLeadId, setSelectedLeadId] = useState<string | null>(leadId);
+    const [selectedLeadName, setSelectedLeadName] = useState<string | null>(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -214,14 +230,14 @@ function StockPageContent() {
 
     // Multi-unit reserve
     const handleReserveSelected = useCallback(async () => {
-        if (selectedUnits.size === 0) return;
+        if (selectedUnits.size === 0 || !selectedLeadId) return;
         setReserving(true);
         const results: { unitNumber: string; success: boolean; error?: string }[] = [];
         try {
             const client = await createSPASassClient();
             for (const [unitId, { unitNumber }] of selectedUnits) {
                 try {
-                    const result: RPCResult = await client.reserveUnit(unitId, leadId ?? undefined);
+                    const result: RPCResult = await client.reserveUnit(unitId, selectedLeadId);
                     results.push({ unitNumber, success: result.success, error: result.error });
                 } catch (err) {
                     results.push({ unitNumber, success: false, error: String(err) });
@@ -247,13 +263,22 @@ function StockPageContent() {
         } finally {
             setReserving(false);
         }
-    }, [selectedUnits, leadId, refreshUser, fetchUnits]);
+    }, [selectedUnits, selectedLeadId, refreshUser, fetchUnits]);
+
+    // Handle lead picked from dialog
+    const handleLeadPicked = useCallback((pickedLeadId: string, pickedLeadName: string) => {
+        setSelectedLeadId(pickedLeadId);
+        setSelectedLeadName(pickedLeadName);
+        // Auto-open confirm dialog after picking a lead
+        setConfirmOpen(true);
+    }, []);
 
     // Confirmation dialog description
     const reserveDialogDescription = useMemo(() => {
         const unitList = Array.from(selectedUnits.values()).map(u => u.unitNumber).join(', ');
-        return `Se reservaran ${selectedUnits.size} unidad(es): ${unitList}.${leadId ? ' Se vincularan con el lead seleccionado.' : ''}`;
-    }, [selectedUnits, leadId]);
+        const leadLabel = selectedLeadName ?? (selectedLeadId ? selectedLeadId.slice(0, 8) + '...' : '');
+        return `Se reservarán ${selectedUnits.size} unidad(es): ${unitList}. Se vincularán con el lead: ${leadLabel}.`;
+    }, [selectedUnits, selectedLeadId, selectedLeadName]);
 
     // ── RENDER ─────────────────────────────
 
@@ -281,13 +306,24 @@ function StockPageContent() {
                     </div>
                 </div>
 
-                {leadId && (
+                {selectedLeadId && (
                     <Card className="border-blue-200 bg-blue-50">
-                        <CardContent className="flex items-center gap-2 py-3">
-                            <AlertCircle className="h-5 w-5 text-blue-600" />
-                            <span className="text-sm text-blue-800">
-                                Reservando unidad para lead ID: <strong>{leadId.slice(0, 8)}...</strong>
-                            </span>
+                        <CardContent className="flex items-center justify-between py-3">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="h-5 w-5 text-blue-600" />
+                                <span className="text-sm text-blue-800">
+                                    Reservando para lead: <strong>{selectedLeadName ?? selectedLeadId.slice(0, 8) + '...'}</strong>
+                                </span>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+                                onClick={() => setLeadPickerOpen(true)}
+                            >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Cambiar
+                            </Button>
                         </CardContent>
                     </Card>
                 )}
@@ -419,20 +455,47 @@ function StockPageContent() {
                                     Limpiar
                                 </button>
                             </div>
-                            <ConfirmDialog
-                                trigger={
-                                    <Button disabled={reserving}>
-                                        {reserving ? 'Reservando...' : `Reservar (${selectedUnits.size})`}
-                                    </Button>
-                                }
-                                title="Reservar Unidades"
-                                description={reserveDialogDescription}
-                                onConfirm={handleReserveSelected}
-                                confirmText="Reservar"
-                            />
+                            <Button
+                                disabled={reserving}
+                                onClick={() => {
+                                    if (selectedLeadId) {
+                                        setConfirmOpen(true);
+                                    } else {
+                                        setLeadPickerOpen(true);
+                                    }
+                                }}
+                            >
+                                {reserving ? 'Reservando...' : `Reservar (${selectedUnits.size})`}
+                            </Button>
                         </div>
                     </div>
                 )}
+
+                {/* Lead picker dialog */}
+                <LeadPickerDialog
+                    open={leadPickerOpen}
+                    onOpenChange={setLeadPickerOpen}
+                    onSelect={handleLeadPicked}
+                />
+
+                {/* Controlled confirm dialog */}
+                <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Reservar Unidades</AlertDialogTitle>
+                            <AlertDialogDescription>{reserveDialogDescription}</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => {
+                                setConfirmOpen(false);
+                                handleReserveSelected();
+                            }}>
+                                Reservar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         );
     }
@@ -442,13 +505,24 @@ function StockPageContent() {
         <div className="p-6 space-y-4">
             <h1 className="text-2xl font-bold">Stock de Unidades</h1>
 
-            {leadId && (
+            {selectedLeadId && (
                 <Card className="border-blue-200 bg-blue-50">
-                    <CardContent className="flex items-center gap-2 py-3">
-                        <AlertCircle className="h-5 w-5 text-blue-600" />
-                        <span className="text-sm text-blue-800">
-                            Reservando unidad para lead ID: <strong>{leadId.slice(0, 8)}...</strong>
-                        </span>
+                    <CardContent className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-blue-600" />
+                            <span className="text-sm text-blue-800">
+                                Reservando para lead: <strong>{selectedLeadName ?? selectedLeadId.slice(0, 8) + '...'}</strong>
+                            </span>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+                            onClick={() => setLeadPickerOpen(true)}
+                        >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Cambiar
+                        </Button>
                     </CardContent>
                 </Card>
             )}
