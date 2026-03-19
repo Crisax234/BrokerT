@@ -1190,3 +1190,15 @@ Este mismo patrón aplica para la reserva de unidades del stock: Realtime proact
 | **Monetización** | Créditos se cobran al reservar lead (no la unidad). |
 | **Stock MVP** | Data estática. Columnas normalizadas + raw_data JSONB. |
 | **Stack** | Next.js + Supabase Pro |
+
+
+
+**La idea es tener una plataforma lo mas simple posible que los pasos sean muy intuitivos casi que para niños chicos, que haya un paso a paso muy claro sobre como funciona la plataforma para generar una plataforma muy amigable, rapida y visualmente elegante. 
+
+
+In @nextjs/src/app/app/my-leads/page.tsx there is a functionality that shows the user the client data if you click it in the   
+  calendar. There is hardcoded data in that side bar, I want that only that information appears in a sidebar in the same way as   
+  in the page @nextjs/src/app/app/my-leads/page.tsx but in @nextjs/src/app/app/leads/page.tsx when I click a lead in the table.   
+  The side bar should colapse the table and make it narrower, if I select another lead with the side bar open it should only      
+  replace the information without closing the side bar and a button to close the side bar and the table will go back to it's      
+  original size.    

@@ -1,54 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createSPASassClient } from '@/lib/supabase/client';
 import { useGlobal } from '@/lib/context/GlobalContext';
-import { formatUF } from '@/components/crm/FormatCurrency';
-import { StatusBadge } from '@/components/crm/StatusBadge';
-import { QualityBadge } from '@/components/crm/QualityBadge';
-import { ScoreBadge } from '@/components/crm/ScoreBadge';
-import { ConfirmDialog } from '@/components/crm/ConfirmDialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Building2, MapPin, User, DollarSign } from 'lucide-react';
-
-type ReservationRow = {
-    id: string;
-    status: string;
-    reserved_at: string;
-    sold_at: string | null;
-    released_at: string | null;
-    cancelled_at: string | null;
-    cancel_reason: string | null;
-    sale_price: number | null;
-    notes: string | null;
-    units: {
-        unit_number: string;
-        typology: string | null;
-        final_price: number | null;
-        surface_useful: number | null;
-        projects: {
-            name: string;
-            commune: string;
-            real_estate_companies: { name: string; display_name: string | null } | null;
-        } | null;
-    } | null;
-    leads: {
-        full_name: string;
-        email: string;
-        quality_tier: string;
-        score: number | null;
-    } | null;
-};
+import { Card, CardContent } from '@/components/ui/card';
+import { ClientCard } from '@/components/crm/reservations/ClientCard';
+import { ClientDetailView } from '@/components/crm/reservations/ClientDetailView';
+import type { ReservationRow, ClientGroup } from '@/components/crm/reservations/types';
 
 export default function ReservationsPage() {
     const { refreshUser } = useGlobal();
     const [reservations, setReservations] = useState<ReservationRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [salePriceInput, setSalePriceInput] = useState<string>('');
+    const [selectedLeadId, setSelectedLeadId] = useState<string | 'unlinked' | null>(null);
 
     const fetchReservations = useCallback(async () => {
         setLoading(true);
@@ -71,6 +36,42 @@ export default function ReservationsPage() {
         fetchReservations();
     }, [fetchReservations]);
 
+    // Group reservations by lead
+    const clientGroups = useMemo<ClientGroup[]>(() => {
+        const map = new Map<string, ClientGroup>();
+        for (const res of reservations) {
+            const key = res.leads?.id ?? 'unlinked';
+            if (!map.has(key)) {
+                map.set(key, {
+                    lead: res.leads,
+                    leadId: res.leads?.id ?? null,
+                    reservations: [],
+                    activeCount: 0,
+                    soldCount: 0,
+                    totalValue: 0,
+                });
+            }
+            const group = map.get(key)!;
+            group.reservations.push(res);
+            if (res.status === 'active') group.activeCount++;
+            if (res.status === 'sold') group.soldCount++;
+            if (res.units?.final_price) group.totalValue += res.units.final_price;
+        }
+        return Array.from(map.values()).sort((a, b) => {
+            if (b.activeCount !== a.activeCount) return b.activeCount - a.activeCount;
+            return b.reservations.length - a.reservations.length;
+        });
+    }, [reservations]);
+
+    const selectedGroup = useMemo(
+        () => {
+            if (selectedLeadId === null) return null;
+            if (selectedLeadId === 'unlinked') return clientGroups.find(g => g.leadId === null) ?? null;
+            return clientGroups.find(g => g.leadId === selectedLeadId) ?? null;
+        },
+        [clientGroups, selectedLeadId]
+    );
+
     const handleRelease = async (reservationId: string) => {
         setActionLoading(reservationId);
         try {
@@ -91,15 +92,13 @@ export default function ReservationsPage() {
         }
     };
 
-    const handleMarkSold = async (reservationId: string) => {
+    const handleMarkSold = async (reservationId: string, salePrice?: number) => {
         setActionLoading(reservationId);
         try {
             const client = await createSPASassClient();
-            const salePrice = salePriceInput ? Number(salePriceInput) : undefined;
             const result = await client.markUnitSold(reservationId, salePrice);
             if (result.success) {
                 alert('Unidad marcada como vendida!');
-                setSalePriceInput('');
                 await refreshUser();
                 fetchReservations();
             } else {
@@ -123,156 +122,35 @@ export default function ReservationsPage() {
 
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">Mis Reservas</h1>
-
-            {reservations.length === 0 ? (
-                <Card>
-                    <CardContent className="py-12 text-center text-gray-500">
-                        No tienes reservas de unidades.
-                    </CardContent>
-                </Card>
+            {selectedGroup ? (
+                <ClientDetailView
+                    group={selectedGroup}
+                    onBack={() => setSelectedLeadId(null)}
+                    actionLoading={actionLoading}
+                    onRelease={handleRelease}
+                    onMarkSold={handleMarkSold}
+                />
             ) : (
-                <div className="grid gap-4">
-                    {reservations.map((res) => (
-                        <Card key={res.id}>
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        <Building2 className="h-5 w-5 text-gray-400" />
-                                        Unidad {res.units?.unit_number ?? '-'}
-                                    </CardTitle>
-                                    <StatusBadge status={res.status} />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {/* Unit info */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                    <div>
-                                        <p className="text-gray-500">Proyecto</p>
-                                        <p className="font-medium">{res.units?.projects?.name ?? '-'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500">Empresa</p>
-                                        <p className="font-medium">
-                                            {res.units?.projects?.real_estate_companies?.display_name ?? res.units?.projects?.real_estate_companies?.name ?? '-'}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-start gap-1">
-                                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                                        <div>
-                                            <p className="text-gray-500">Comuna</p>
-                                            <p className="font-medium">{res.units?.projects?.commune ?? '-'}</p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500">Tipologia</p>
-                                        <p className="font-medium">{res.units?.typology ?? '-'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500">Superficie</p>
-                                        <p className="font-medium">{res.units?.surface_useful ? `${res.units.surface_useful} m2` : '-'}</p>
-                                    </div>
-                                    <div className="flex items-start gap-1">
-                                        <DollarSign className="h-4 w-4 text-gray-400 mt-0.5" />
-                                        <div>
-                                            <p className="text-gray-500">Precio</p>
-                                            <p className="font-medium">{formatUF(res.units?.final_price)}</p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500">Reservado</p>
-                                        <p className="font-medium">{new Date(res.reserved_at).toLocaleDateString('es-CL')}</p>
-                                    </div>
-                                    {res.sale_price != null && (
-                                        <div>
-                                            <p className="text-gray-500">Precio venta</p>
-                                            <p className="font-medium">{formatUF(res.sale_price)}</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Lead info */}
-                                {res.leads && (
-                                    <>
-                                        <Separator />
-                                        <div className="flex items-center gap-3 text-sm">
-                                            <User className="h-4 w-4 text-gray-400" />
-                                            <span className="font-medium">{res.leads.full_name}</span>
-                                            <span className="text-gray-400">{res.leads.email}</span>
-                                            <QualityBadge tier={res.leads.quality_tier} />
-                                            <ScoreBadge score={res.leads.score} />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Actions for active reservations */}
-                                {res.status === 'active' && (
-                                    <>
-                                        <Separator />
-                                        <div className="flex gap-2 items-center">
-                                            <ConfirmDialog
-                                                trigger={
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="text-red-600 border-red-200 hover:bg-red-50"
-                                                        disabled={actionLoading === res.id}
-                                                    >
-                                                        Liberar Unidad
-                                                    </Button>
-                                                }
-                                                title="Liberar Unidad"
-                                                description={`Se liberara la unidad ${res.units?.unit_number ?? ''} y volvera a estar disponible.`}
-                                                onConfirm={() => handleRelease(res.id)}
-                                                variant="destructive"
-                                                confirmText="Liberar"
-                                            />
-                                            <ConfirmDialog
-                                                trigger={
-                                                    <Button
-                                                        size="sm"
-                                                        disabled={actionLoading === res.id}
-                                                    >
-                                                        Marcar Vendida
-                                                    </Button>
-                                                }
-                                                title="Marcar como Vendida"
-                                                description={`Marcar la unidad ${res.units?.unit_number ?? ''} como vendida.`}
-                                                onConfirm={() => handleMarkSold(res.id)}
-                                                confirmText="Confirmar Venta"
-                                            >
-                                                <div className="px-1 py-2">
-                                                    <label className="text-sm text-gray-500 block mb-1">
-                                                        Precio de venta (UF, opcional)
-                                                    </label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="Ej: 3500"
-                                                        value={salePriceInput}
-                                                        onChange={(e) => setSalePriceInput(e.target.value)}
-                                                    />
-                                                </div>
-                                            </ConfirmDialog>
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Info for completed reservations */}
-                                {res.status === 'sold' && res.sold_at && (
-                                    <p className="text-xs text-green-600">
-                                        Vendida el {new Date(res.sold_at).toLocaleDateString('es-CL')}
-                                    </p>
-                                )}
-                                {res.status === 'released' && res.released_at && (
-                                    <p className="text-xs text-gray-500">
-                                        Liberada el {new Date(res.released_at).toLocaleDateString('es-CL')}
-                                        {res.cancel_reason && ` - Razon: ${res.cancel_reason}`}
-                                    </p>
-                                )}
+                <>
+                    <h1 className="text-2xl font-bold">Mis Reservas</h1>
+                    {clientGroups.length === 0 ? (
+                        <Card>
+                            <CardContent className="py-12 text-center text-gray-500">
+                                No tienes reservas de unidades.
                             </CardContent>
                         </Card>
-                    ))}
-                </div>
+                    ) : (
+                        <div className="grid gap-3">
+                            {clientGroups.map((group) => (
+                                <ClientCard
+                                    key={group.leadId ?? 'unlinked'}
+                                    group={group}
+                                    onClick={() => setSelectedLeadId(group.leadId ?? 'unlinked')}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

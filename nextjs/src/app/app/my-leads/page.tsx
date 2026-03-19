@@ -5,8 +5,9 @@ import { createSPASassClient } from '@/lib/supabase/client';
 import { Database } from '@/lib/types';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { LeadCalendar } from '@/components/crm/calendar/LeadCalendar';
-import { UnscheduledLeadsSidebar } from '@/components/crm/calendar/UnscheduledLeadsSidebar';
-import { LeadDetailDialog } from '@/components/crm/calendar/LeadDetailDialog';
+// import { UnscheduledLeadsSidebar } from '@/components/crm/calendar/UnscheduledLeadsSidebar';
+// import { LeadDetailDialog } from '@/components/crm/calendar/LeadDetailDialog';
+import { LeadDetailSidebar } from '@/components/crm/calendar/LeadDetailSidebar';
 
 type LeadRow = Database['public']['Tables']['leads']['Row'];
 
@@ -43,10 +44,10 @@ export default function MyLeadsPage() {
         [leads]
     );
 
-    const unscheduledLeads = useMemo(
-        () => leads.filter((l) => l.meeting_at == null),
-        [leads]
-    );
+    // const unscheduledLeads = useMemo(
+    //     () => leads.filter((l) => l.meeting_at == null),
+    //     [leads]
+    // );
 
     const handleRelease = async (leadId: string) => {
         setActionLoading(leadId);
@@ -95,20 +96,26 @@ export default function MyLeadsPage() {
                     leads={scheduledLeads}
                     onSelectLead={handleSelectLead}
                 />
-                <UnscheduledLeadsSidebar
+                {/* <UnscheduledLeadsSidebar
                     leads={unscheduledLeads}
                     onSelectLead={handleSelectLead}
                     totalLeads={leads.length}
+                /> */}
+                <LeadDetailSidebar
+                    lead={selectedLead}
+                    onClose={() => setSelectedLead(null)}
+                    onRelease={handleRelease}
+                    releasing={actionLoading === selectedLead?.id}
                 />
             </div>
 
-            <LeadDetailDialog
+            {/* <LeadDetailDialog
                 lead={selectedLead}
                 open={selectedLead !== null}
                 onOpenChange={(open) => { if (!open) setSelectedLead(null); }}
                 onRelease={handleRelease}
                 releasing={actionLoading === selectedLead?.id}
-            />
+            /> */}
         </div>
     );
 }

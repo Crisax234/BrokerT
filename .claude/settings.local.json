@@ -28,7 +28,17 @@
       "Bash(cd /c/Users/gusta/Desktop/otros/BrokerT/nextjs && npx next dev --port 3001 2>&1)",
       "Bash(sleep 10:*)",
       "mcp__playwright__browser_take_screenshot",
-      "Bash(sleep 12:*)"
+      "Bash(sleep 12:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://cwlnyabogyqpdouyfjrs.supabase.co/rest/v1/ -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3bG55YWJvZ3lxcGRvdXlmanJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNzYzOTgsImV4cCI6MjA4Njg1MjM5OH0.AfulXMYQclz6ELumGOkjHho-j4E458NF8VR_FATtOQ0\" 2>&1)",
+      "Bash(curl -v https://cwlnyabogyqpdouyfjrs.supabase.co 2>&1 | head -20)",
+      "Bash(npx claude-code:*)",
+      "Bash(claude skills:*)",
+      "Bash(npx skills:*)",
+      "Bash(npx tsc:*)",
+      "Bash(yarn build:*)",
+      "Bash(wc:*)",
+      "Bash(find /home/crisax/millos/BrokerT/nextjs/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(cat /home/crisax/millos/BrokerT/nextjs/src/app/app/stock/[projectId]/escenario/page.tsx)"
     ]
   }
 }

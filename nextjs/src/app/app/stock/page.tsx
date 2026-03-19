@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { createSPASassClient } from '@/lib/supabase/client';
 import { Database } from '@/lib/types';
 import { RPCResult } from '@/lib/crm-types';
@@ -26,7 +26,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, ChevronLeft, ChevronRight, Calculator } from 'lucide-react';
 
 type UnitRow = Database['public']['Tables']['units']['Row'] & {
     projects: {
@@ -54,6 +55,7 @@ export default function StockPage() {
 
 function StockPageContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const leadId = searchParams.get('leadId');
     const { refreshUser } = useGlobal();
 
@@ -68,6 +70,9 @@ function StockPageContent() {
     const [projectId, setProjectId] = useState<string>('');
     const [typology, setTypology] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('available');
+
+    // Multi-unit selection for Escenario
+    const [selectedUnits, setSelectedUnits] = useState<Map<string, { unitNumber: string; projectId: string }>>(new Map());
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -143,6 +148,49 @@ function StockPageContent() {
         }
     };
 
+    // ── Selection logic ────────────────────────────────
+    const selectionEnabled = !!projectId;
+    const maxSelections = 5;
+    const canSelectMore = selectedUnits.size < maxSelections;
+
+    const toggleUnitSelection = useCallback((unit: UnitRow) => {
+        setSelectedUnits(prev => {
+            const next = new Map(prev);
+            if (next.has(unit.id)) {
+                next.delete(unit.id);
+            } else if (next.size < maxSelections) {
+                next.set(unit.id, { unitNumber: unit.unit_number, projectId: unit.project_id });
+            }
+            return next;
+        });
+    }, []);
+
+    const toggleSelectAllVisible = useCallback(() => {
+        setSelectedUnits(prev => {
+            const allVisibleSelected = units.length > 0 && units.every(u => prev.has(u.id));
+            if (allVisibleSelected) {
+                const next = new Map(prev);
+                units.forEach(u => next.delete(u.id));
+                return next;
+            }
+            const next = new Map(prev);
+            for (const u of units) {
+                if (next.size >= maxSelections) break;
+                if (!next.has(u.id)) {
+                    next.set(u.id, { unitNumber: u.unit_number, projectId: u.project_id });
+                }
+            }
+            return next;
+        });
+    }, [units]);
+
+    const handleNavigateToEscenario = useCallback(() => {
+        if (selectedUnits.size === 0 || !projectId) return;
+        const unitNumbers = Array.from(selectedUnits.values()).map(u => u.unitNumber);
+        const params = new URLSearchParams({ units: unitNumbers.join(',') });
+        router.push(`/app/stock/${projectId}/escenario?${params.toString()}`);
+    }, [selectedUnits, projectId, router]);
+
     // Derive unique companies from projects
     const companies = useMemo(() => {
         const map = new Map<string, { id: string; name: string }>();
@@ -167,7 +215,7 @@ function StockPageContent() {
     const totalPages = Math.ceil(totalCount / pageSize);
 
     return (
-        <div className="p-6 space-y-4">
+        <div className={`p-6 space-y-4 ${selectedUnits.size > 0 ? 'pb-24' : ''}`}>
             <h1 className="text-2xl font-bold">Stock de Unidades</h1>
 
             {leadId && (
@@ -185,7 +233,7 @@ function StockPageContent() {
             <div className="flex flex-wrap gap-3 items-end">
                 <div>
                     <label className="text-sm text-gray-500 block mb-1">Inmobiliaria</label>
-                    <Select value={companyId} onValueChange={(v) => { setCompanyId(v === 'all' ? '' : v); setProjectId(''); setPage(1); }}>
+                    <Select value={companyId} onValueChange={(v) => { setCompanyId(v === 'all' ? '' : v); setProjectId(''); setSelectedUnits(new Map()); setPage(1); }}>
                         <SelectTrigger className="w-[220px]">
                             <SelectValue placeholder="Todas las inmobiliarias" />
                         </SelectTrigger>
@@ -201,7 +249,7 @@ function StockPageContent() {
                 </div>
                 <div>
                     <label className="text-sm text-gray-500 block mb-1">Proyecto</label>
-                    <Select value={projectId} onValueChange={(v) => { setProjectId(v === 'all' ? '' : v); setPage(1); }}>
+                    <Select value={projectId} onValueChange={(v) => { setProjectId(v === 'all' ? '' : v); setSelectedUnits(new Map()); setPage(1); }}>
                         <SelectTrigger className="w-[220px]">
                             <SelectValue placeholder="Todos los proyectos" />
                         </SelectTrigger>
@@ -250,6 +298,18 @@ function StockPageContent() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            {selectionEnabled && (
+                                <TableHead className="w-[50px]">
+                                    <input
+                                        type="checkbox"
+                                        role="checkbox"
+                                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                        checked={units.length > 0 && units.every(u => selectedUnits.has(u.id))}
+                                        onChange={toggleSelectAllVisible}
+                                        disabled={units.length === 0}
+                                    />
+                                </TableHead>
+                            )}
                             <TableHead>Proyecto</TableHead>
                             <TableHead>Empresa</TableHead>
                             <TableHead>Unidad</TableHead>
@@ -265,19 +325,31 @@ function StockPageContent() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={10} className="text-center py-8">
+                                <TableCell colSpan={selectionEnabled ? 11 : 10} className="text-center py-8">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
                                 </TableCell>
                             </TableRow>
                         ) : units.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                                <TableCell colSpan={selectionEnabled ? 11 : 10} className="text-center py-8 text-gray-500">
                                     No se encontraron unidades
                                 </TableCell>
                             </TableRow>
                         ) : (
                             units.map((unit) => (
-                                <TableRow key={unit.id}>
+                                <TableRow key={unit.id} className={selectedUnits.has(unit.id) ? 'bg-primary-50' : ''}>
+                                    {selectionEnabled && (
+                                        <TableCell>
+                                            <input
+                                                type="checkbox"
+                                                role="checkbox"
+                                                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                                                checked={selectedUnits.has(unit.id)}
+                                                onChange={() => toggleUnitSelection(unit)}
+                                                disabled={!selectedUnits.has(unit.id) && !canSelectMore}
+                                            />
+                                        </TableCell>
+                                    )}
                                     <TableCell className="font-medium">{unit.projects?.name ?? '-'}</TableCell>
                                     <TableCell>{unit.projects?.real_estate_companies?.display_name ?? unit.projects?.real_estate_companies?.name ?? '-'}</TableCell>
                                     <TableCell>{unit.unit_number}</TableCell>
@@ -288,24 +360,33 @@ function StockPageContent() {
                                     <TableCell>{unit.parking ?? 0}</TableCell>
                                     <TableCell>{unit.storage ?? 0}</TableCell>
                                     <TableCell>
-                                        {(unit.status === 'available' || unit.status === 'sin_abono') ? (
-                                            <ConfirmDialog
-                                                trigger={
-                                                    <Button
-                                                        size="sm"
-                                                        disabled={actionLoading === unit.id}
-                                                    >
-                                                        {actionLoading === unit.id ? 'Reservando...' : 'Reservar'}
-                                                    </Button>
-                                                }
-                                                title="Reservar Unidad"
-                                                description={`Reservar unidad ${unit.unit_number} del proyecto ${unit.projects?.name ?? ''}. ${leadId ? 'Se vinculara con el lead seleccionado.' : 'No se vinculara a ningun lead.'}`}
-                                                onConfirm={() => handleReserve(unit.id)}
-                                                confirmText="Reservar"
-                                            />
-                                        ) : (
-                                            <span className="text-xs text-gray-400">{unit.status}</span>
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            {(unit.status === 'available' || unit.status === 'sin_abono') ? (
+                                                <ConfirmDialog
+                                                    trigger={
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={actionLoading === unit.id}
+                                                        >
+                                                            {actionLoading === unit.id ? 'Reservando...' : 'Reservar'}
+                                                        </Button>
+                                                    }
+                                                    title="Reservar Unidad"
+                                                    description={`Reservar unidad ${unit.unit_number} del proyecto ${unit.projects?.name ?? ''}. ${leadId ? 'Se vinculara con el lead seleccionado.' : 'No se vinculara a ningun lead.'}`}
+                                                    onConfirm={() => handleReserve(unit.id)}
+                                                    confirmText="Reservar"
+                                                />
+                                            ) : (
+                                                <span className="text-xs text-gray-400">{unit.status}</span>
+                                            )}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => router.push(`/app/stock/${unit.project_id}/escenario?unit=${encodeURIComponent(unit.unit_number)}`)}
+                                            >
+                                                Escenario
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -341,6 +422,32 @@ function StockPageContent() {
                     </Button>
                 </div>
             </div>
+
+            {/* Floating selection bar */}
+            {selectedUnits.size > 0 && (
+                <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-20 bg-white border-t shadow-lg px-6 py-3">
+                    <div className="flex items-center justify-between max-w-screen-xl mx-auto">
+                        <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-primary-100 text-primary-800 border-primary-300">
+                                {selectedUnits.size} / {maxSelections}
+                            </Badge>
+                            <span className="text-sm text-gray-700">
+                                {selectedUnits.size === 1 ? '1 unidad seleccionada' : `${selectedUnits.size} unidades seleccionadas`}
+                            </span>
+                            <button
+                                onClick={() => setSelectedUnits(new Map())}
+                                className="text-sm text-gray-500 hover:text-gray-700 underline"
+                            >
+                                Limpiar
+                            </button>
+                        </div>
+                        <Button onClick={handleNavigateToEscenario}>
+                            <Calculator className="h-4 w-4 mr-2" />
+                            Ver Escenario ({selectedUnits.size})
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

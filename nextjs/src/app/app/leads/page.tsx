@@ -33,6 +33,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Lock, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { LeadBrowseSidebar } from '@/components/crm/LeadBrowseSidebar';
 
 type LeadRow = Database['public']['Views']['leads_browsable']['Row'];
 
@@ -44,6 +45,7 @@ export default function LeadsBrowsingPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [selectedLead, setSelectedLead] = useState<LeadRow | null>(null);
 
     // Filters
     const [qualityTier, setQualityTier] = useState<string>('');
@@ -187,7 +189,7 @@ export default function LeadsBrowsingPage() {
                                 size="sm"
                                 disabled={actionLoading === leadId}
                             >
-                                {actionLoading === leadId ? 'Reservando...' : 'Agendar'}
+                                {actionLoading === leadId ? 'Agendando...' : 'Agendar'}
                             </Button>
                         }
                         title="Agendar Lead"
@@ -250,76 +252,96 @@ export default function LeadsBrowsingPage() {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="border rounded-lg overflow-auto">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableHead>
+            <div className="flex gap-6">
+                {/* Table */}
+                <div className="flex-1 min-w-0 space-y-4">
+                    <div className="border rounded-lg overflow-auto">
+                        <Table>
+                            <TableHeader>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => (
+                                            <TableHead key={header.id}>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(header.column.columnDef.header, header.getContext())}
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
                                 ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} className="text-center py-8">
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
-                                </TableCell>
-                            </TableRow>
-                        ) : data.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} className="text-center py-8 text-gray-500">
-                                    No se encontraron leads
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} className="text-center py-8">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
                                         </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                                    </TableRow>
+                                ) : data.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} className="text-center py-8 text-gray-500">
+                                            No se encontraron leads
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    table.getRowModel().rows.map((row) => (
+                                        <TableRow
+                                            key={row.id}
+                                            className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                                                selectedLead?.id === row.original.id ? 'bg-muted' : ''
+                                            }`}
+                                            onClick={() => setSelectedLead(row.original)}
+                                        >
+                                            {row.getVisibleCells().map((cell) => (
+                                                <TableCell key={cell.id}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500">
-                    {totalCount} leads encontrados
-                </p>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm">
-                        {page} / {totalPages || 1}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page >= totalPages}
-                    >
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-500">
+                            {totalCount} leads encontrados
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="text-sm">
+                                {page} / {totalPages || 1}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </div>
+
+                {/* Sidebar */}
+                {selectedLead && (
+                    <LeadBrowseSidebar
+                        lead={selectedLead}
+                        onClose={() => setSelectedLead(null)}
+                        onReserve={(leadId) => handleReserve(leadId)}
+                        reserving={actionLoading === selectedLead?.id}
+                    />
+                )}
             </div>
         </div>
     );

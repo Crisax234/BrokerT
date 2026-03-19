@@ -2,9 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Maintenance rule:** This file must be updated whenever significant codebase changes occur (new routes, components, database schema changes, new libraries, architectural decisions) so that future Claude Code instances have accurate context. When completing a task that changes the structure described here, update the relevant section before finishing.
+
 ## Project Overview
 
-BrokerT is a real estate CRM SaaS platform for direct property sales management. It is built on top of a Supabase + Next.js SaaS template and extended with domain-specific lead management, unit reservations, and sales tracking. The business logic and database schema are documented in detail in `planV3.md` (in Spanish).
+BrokerT is a real estate CRM SaaS platform for direct property sales management in Chile. It is built on top of a Supabase + Next.js SaaS template and extended with domain-specific lead management, unit reservations, investment scenario calculators, and sales tracking. The business logic and database schema are documented in detail in `planV3.md` (in Spanish).
 
 The repository has two frontends sharing a single Supabase backend:
 - **`nextjs/`** — Web app (Next.js 15 App Router, React 19, Tailwind CSS, shadcn/ui)
@@ -44,11 +46,26 @@ npx supabase migrations up --linked
 ## Architecture
 
 ### Web App Routing (`nextjs/src/app/`)
-- `/` — Public landing page with features/pricing
+
+**Public Routes:**
+- `/` — Landing page with features/pricing
 - `/auth/*` — Login, register, 2FA, password reset, email verification
-- `/app/*` — Protected routes (dashboard, storage, table, user-settings) wrapped in `GlobalProvider` and `AppLayout`
 - `/api/auth/callback` — OAuth callback handler
 - `/legal/[document]` — Dynamic legal document pages (markdown-based)
+
+**Protected Routes (`/app/*`):** All wrapped in `GlobalProvider` and `AppLayout`
+- `/app/` — Dashboard with account status card and quick actions
+- `/app/leads` — Lead browsing/exploration with TanStack Table (filters: quality tier, score min, meeting date)
+- `/app/my-leads` — Calendar view of reserved leads (LeadCalendar + LeadDetailSidebar)
+- `/app/stock` — Unit inventory browsing with company/project/typology filters; supports multi-unit selection and "Escenario" calculator link
+- `/app/stock/[projectId]/escenario` — Investment scenario calculator for selected units
+- `/app/reservations` — View and manage unit reservations (mark sold, release)
+- `/app/storage` — File storage (from template)
+- `/app/table` — Generic table (from template)
+- `/app/user-settings` — User settings and password change
+
+### Navigation (`AppLayout.tsx`)
+Sidebar menu items: Dashboard, Leads, Mi Agenda (My Leads), Stock, Reservas, Settings. Responsive with collapsible mobile sidebar.
 
 ### Authentication & Middleware
 - `src/middleware.ts` delegates to `lib/supabase/middleware.ts` to refresh Supabase sessions on every request
@@ -59,10 +76,45 @@ npx supabase migrations up --linked
 - `client.ts` — Browser-side Supabase client (SPA)
 - `server.ts` — Server-side client (uses cookies)
 - `serverAdminClient.ts` — Service-role client for admin operations
-- `unified.ts` — `SassClient` class wrapping auth, storage, and CRUD operations. All data access goes through this wrapper.
+- `unified.ts` — `SassClient` class wrapping all data access. Methods:
+  - **Auth:** `loginEmail()`, `registerEmail()`, `exchangeCodeForSession()`, `logout()`, `resendVerificationEmail()`
+  - **Profile:** `getSellerProfile()`
+  - **Leads:** `getLeadsBrowsable()`, `getMyReservedLeads()`, `reserveLead()`, `releaseLead()`
+  - **Projects/Units:** `getProjects()`, `getUnits()`, `reserveUnit()`, `releaseUnit()`, `markUnitSold()`
+  - **Reservations:** `getMyReservations()`
+  - **UF Values:** `getLatestUFValue()`
+  - **File storage:** `uploadFile()`, `getFiles()`, `deleteFile()`, `shareFile()`
+  - **Tasks:** `getMyTodoList()`, `createTask()`, `removeTask()`, `updateAsDone()`
+
+### CRM Components (`nextjs/src/components/crm/`)
+
+**Badge Components:**
+- `ScoreBadge.tsx` — Color-coded lead score (green ≥80, yellow ≥60, orange ≥40, red <40)
+- `QualityBadge.tsx` — Quality tier badges (premium=purple, hot=red, warm=orange, cold=blue)
+- `StatusBadge.tsx` — Status badges for leads and units
+
+**Utility Components:**
+- `AccountStatusCard.tsx` — User's plan reservations, credits, period end
+- `ConfirmDialog.tsx` — Reusable confirmation dialog (with destructive variant)
+- `FormatCurrency.ts` — `formatCLP()` and `formatUF()` helpers
+
+**Calendar (`crm/calendar/`):**
+- `LeadCalendar.tsx` — React Big Calendar with Spanish localization, color-coded by quality tier
+- `CalendarEventComponent.tsx` — Individual event rendering
+- `CalendarToolbar.tsx` — Calendar navigation
+- `LeadDetailSidebar.tsx` — Lead detail sidebar with contact info, financials, and actions
+- `LeadDetailDialog.tsx` — Modal version of lead details
+- `UnscheduledLeadsSidebar.tsx` — Lists unscheduled leads (partially implemented)
+
+### Calculations (`nextjs/src/lib/calculations/`)
+- `escenario.ts` — Investment scenario engine. Core functions: `pmtExcel()`, `monthlyMortgage()`, `creditPct()`, `piePesos()`, `totalPie()`, `abonoTotal()`, `paymentPlanOption1/2()`, `cashFlow()`, `wealthProjection()`, `mortgageScenarios()`. Main export: `computeEscenario()`.
+
+### Types
+- `lib/types.ts` — Auto-generated from Supabase schema (do not edit manually)
+- `lib/crm-types.ts` — `RPCResult` type for RPC responses (success, error, credits_used, lead, unit, reservation_id, etc.)
 
 ### State Management
-- `GlobalContext` (`lib/context/GlobalContext.tsx`) holds authenticated user info (email, id, registered_at)
+- `GlobalContext` (`lib/context/GlobalContext.tsx`) holds authenticated user info (email, id, credits, plan reservations, lifetime stats). Auto-loads seller profile on mount.
 - Page-level state uses local `useState`; no global state library
 
 ### Styling
@@ -85,12 +137,28 @@ The core business flow is:
 4. **Unit reservation** — Links a specific property unit to the reserved lead
 5. **Sale/Release** — Close deal or release both lead and unit
 
-Key database patterns:
-- `leads_browsable` view hides contact data unless the current user owns the reservation
-- `reserve_lead()` and `reserve_unit()` are PostgreSQL functions using `FOR UPDATE NOWAIT` for exclusive locking
-- `units` table uses normalized columns + `raw_data` JSONB for schema flexibility across different real estate companies
-- All tables use Row-Level Security (RLS) policies
-- `seller_accounts` tracks credits and subscription tier
+Key database tables:
+- `seller_profiles` — User/seller information
+- `leads` — Leads with status tracking and exclusive reservations
+- `leads_browsable` VIEW — Hides contact data unless current user owns the reservation
+- `projects` — Real estate projects
+- `units` — Property units with pricing (normalized columns + `raw_data` JSONB)
+- `reservations` — Unit reservations linking leads and sellers
+- `appointments` — Meeting scheduling
+- `subscriptions` & `seller_accounts` — Billing, credits, and subscription tier
+- `real_estate_companies` — Company metadata
+
+Key database functions:
+- `reserve_lead()` and `reserve_unit()` — PostgreSQL functions using `FOR UPDATE NOWAIT` for exclusive locking
+- `release_lead()` and `release_unit()` — Reverse reservations
+- `mark_unit_sold()` — Marks unit as sold and lead as converted
+
+All tables use Row-Level Security (RLS) policies.
+
+## Key Dependencies (beyond template)
+
+- `@tanstack/react-table` ^8.21.3 — Advanced table with filtering/sorting
+- `react-big-calendar` ^1.19.4 — Calendar component for lead scheduling
 
 ## Environment Variables
 
@@ -116,3 +184,14 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 - Package manager is **yarn** for both web and mobile
 - The `planV3.md` file is the source of truth for business logic and database schema decisions (written in Spanish)
 - Imports use the `@/*` path alias mapped to `src/` in the web app
+- All data access goes through the `SassClient` wrapper — no direct Supabase calls in components
+- Business logic uses Spanish naming; technical/utility code uses English
+- Currency values are in UF (Chilean housing unit) and CLP (Chilean pesos)
+
+## Features Not Yet Implemented
+
+- Payment processing integration (Stripe references exist in schema)
+- Cal.com calendar integration (fields present in schema)
+- CSV/Excel import for bulk data
+- Transaction logging and audit trail
+- Notifications/email system

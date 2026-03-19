@@ -276,9 +276,48 @@ export class SassClient {
         if (!user) return { data: null, error: { message: 'Not authenticated' } };
         return this.client
             .from('reservations')
-            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(full_name, email, quality_tier, score)')
+            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, preferred_typology, estimated_income, budget_min, budget_max, meeting_at, age, quality_tier, score, status, reserved_at)')
             .eq('seller_id', user.id)
             .order('reserved_at', { ascending: false });
+    }
+
+    // ── CRM: UF Values ──────────────────────────────────────
+
+    async getLatestUFValue() {
+        return this.client
+            .from('uf_values')
+            .select('date, value')
+            .lte('date', new Date().toISOString().split('T')[0])
+            .order('date', { ascending: false })
+            .limit(1)
+            .single();
+    }
+
+    // ── CRM: Project + Unit detail fetches ────────────────
+
+    async getProjectById(projectId: string) {
+        return this.client
+            .from('projects')
+            .select('*, real_estate_companies(name, display_name)')
+            .eq('id', projectId)
+            .single();
+    }
+
+    async getUnitByProjectAndNumber(projectId: string, unitNumber: string) {
+        return this.client
+            .from('units')
+            .select('*')
+            .eq('project_id', projectId)
+            .eq('unit_number', unitNumber)
+            .single();
+    }
+
+    async getProjectUnitNumbers(projectId: string) {
+        return this.client
+            .from('units')
+            .select('unit_number, status')
+            .eq('project_id', projectId)
+            .order('unit_number');
     }
 
     getSupabaseClient() {

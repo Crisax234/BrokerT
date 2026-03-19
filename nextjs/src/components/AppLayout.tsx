@@ -51,7 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const navigation = [
         { name: 'Dashboard', href: '/app', icon: Home },
         { name: 'Leads', href: '/app/leads', icon: Users },
-        { name: 'Mis Leads', href: '/app/leads/my-leads', icon: UserCheck },
+        { name: 'Mi Agenda', href: '/app/my-leads', icon: UserCheck },
         { name: 'Stock', href: '/app/stock', icon: Building2 },
         { name: 'Reservas', href: '/app/reservations', icon: ClipboardList },
         { name: 'Settings', href: '/app/user-settings', icon: Settings },

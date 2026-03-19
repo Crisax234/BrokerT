@@ -1,0 +1,2 @@
+* Una reserva en el stock siempre esta asosciada a una lead agendada?
+* Horario de la reunio viene predefinido de la lead? Que pasa si se pasa de ese horario? (hay preguntar por acciones siguientes a ese caso o que estado deberia quedar)
