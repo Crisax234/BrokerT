@@ -148,28 +148,28 @@ export type Database = {
           acquisition_cost: number | null
           additional_contact_info: Json | null
           age: number | null
-          age_range: string | null
-          budget_max: number | null
-          budget_min: number | null
+          ahorros: boolean | null
+          arriendos: number | null
+          bancarizado: boolean | null
           created_at: string | null
+          cuota_credito_consumo: number | null
           current_commune: string | null
+          dividendo_actual: number | null
           email: string | null
-          estimated_income: number | null
-          estimated_income_range: string | null
           external_id: string | null
-          family_size: number | null
           full_name: string
+          honorarios: number | null
           id: string
           is_active: boolean | null
+          liquidaciones: number | null
           meeting_at: string | null
           metadata: Json | null
           occupation: string | null
           phone: string | null
-          preferred_communes: string[] | null
-          preferred_typology: string | null
           quality_tier: Database["public"]["Enums"]["lead_quality"]
           reserved_at: string | null
           reserved_by: string | null
+          retiros: number | null
           rut: string | null
           score: number | null
           source: string | null
@@ -181,28 +181,28 @@ export type Database = {
           acquisition_cost?: number | null
           additional_contact_info?: Json | null
           age?: number | null
-          age_range?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
+          ahorros?: boolean | null
+          arriendos?: number | null
+          bancarizado?: boolean | null
           created_at?: string | null
+          cuota_credito_consumo?: number | null
           current_commune?: string | null
+          dividendo_actual?: number | null
           email?: string | null
-          estimated_income?: number | null
-          estimated_income_range?: string | null
           external_id?: string | null
-          family_size?: number | null
           full_name: string
+          honorarios?: number | null
           id?: string
           is_active?: boolean | null
+          liquidaciones?: number | null
           meeting_at?: string | null
           metadata?: Json | null
           occupation?: string | null
           phone?: string | null
-          preferred_communes?: string[] | null
-          preferred_typology?: string | null
           quality_tier?: Database["public"]["Enums"]["lead_quality"]
           reserved_at?: string | null
           reserved_by?: string | null
+          retiros?: number | null
           rut?: string | null
           score?: number | null
           source?: string | null
@@ -214,28 +214,28 @@ export type Database = {
           acquisition_cost?: number | null
           additional_contact_info?: Json | null
           age?: number | null
-          age_range?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
+          ahorros?: boolean | null
+          arriendos?: number | null
+          bancarizado?: boolean | null
           created_at?: string | null
+          cuota_credito_consumo?: number | null
           current_commune?: string | null
+          dividendo_actual?: number | null
           email?: string | null
-          estimated_income?: number | null
-          estimated_income_range?: string | null
           external_id?: string | null
-          family_size?: number | null
           full_name?: string
+          honorarios?: number | null
           id?: string
           is_active?: boolean | null
+          liquidaciones?: number | null
           meeting_at?: string | null
           metadata?: Json | null
           occupation?: string | null
           phone?: string | null
-          preferred_communes?: string[] | null
-          preferred_typology?: string | null
           quality_tier?: Database["public"]["Enums"]["lead_quality"]
           reserved_at?: string | null
           reserved_by?: string | null
+          retiros?: number | null
           rut?: string | null
           score?: number | null
           source?: string | null
@@ -1041,72 +1041,77 @@ export type Database = {
       leads_browsable: {
         Row: {
           age: number | null
-          age_range: string | null
-          budget_max: number | null
-          budget_min: number | null
+          ahorros: boolean | null
+          arriendos: number | null
+          bancarizado: boolean | null
           created_at: string | null
+          cuota_credito_consumo: number | null
           current_commune: string | null
+          dividendo_actual: number | null
+          egresos_total: number | null
           email: string | null
-          estimated_income: number | null
-          estimated_income_range: string | null
-          family_size: number | null
           full_name: string | null
+          honorarios: number | null
           id: string | null
+          liquidaciones: number | null
+          max_dividendo: number | null
           meeting_at: string | null
           metadata: Json | null
           occupation: string | null
           phone: string | null
-          preferred_communes: string[] | null
-          preferred_typology: string | null
           quality_tier: Database["public"]["Enums"]["lead_quality"] | null
+          renta_total: number | null
+          reserved_at: string | null
+          reserved_by: string | null
+          retiros: number | null
           rut: string | null
           score: number | null
           status: Database["public"]["Enums"]["lead_status"] | null
         }
         Insert: {
           age?: number | null
-          age_range?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
+          ahorros?: boolean | null
+          arriendos?: number | null
+          bancarizado?: boolean | null
           created_at?: string | null
+          cuota_credito_consumo?: number | null
           current_commune?: string | null
+          dividendo_actual?: number | null
           email?: never
-          estimated_income?: number | null
-          estimated_income_range?: string | null
-          family_size?: number | null
           full_name?: never
+          honorarios?: number | null
           id?: string | null
+          liquidaciones?: number | null
           meeting_at?: string | null
           metadata?: Json | null
           occupation?: string | null
           phone?: never
-          preferred_communes?: string[] | null
-          preferred_typology?: string | null
           quality_tier?: Database["public"]["Enums"]["lead_quality"] | null
+          retiros?: number | null
           rut?: never
           score?: number | null
           status?: Database["public"]["Enums"]["lead_status"] | null
         }
         Update: {
           age?: number | null
-          age_range?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
+          ahorros?: boolean | null
+          arriendos?: number | null
+          bancarizado?: boolean | null
           created_at?: string | null
+          cuota_credito_consumo?: number | null
           current_commune?: string | null
+          dividendo_actual?: number | null
           email?: never
-          estimated_income?: number | null
-          estimated_income_range?: string | null
-          family_size?: number | null
           full_name?: never
+          honorarios?: number | null
           id?: string | null
+          liquidaciones?: number | null
           meeting_at?: string | null
           metadata?: Json | null
           occupation?: string | null
           phone?: never
-          preferred_communes?: string[] | null
-          preferred_typology?: string | null
           quality_tier?: Database["public"]["Enums"]["lead_quality"] | null
+          retiros?: number | null
           rut?: never
           score?: number | null
           status?: Database["public"]["Enums"]["lead_status"] | null

@@ -6,10 +6,14 @@ export type EnrichedLeadData = {
     rut: string | null;
     occupation: string | null;
     current_commune: string | null;
-    preferred_typology: string | null;
-    estimated_income: number | null;
-    budget_min: number | null;
-    budget_max: number | null;
+    liquidaciones: number | null;
+    honorarios: number | null;
+    arriendos: number | null;
+    retiros: number | null;
+    cuota_credito_consumo: number | null;
+    dividendo_actual: number | null;
+    bancarizado: boolean | null;
+    ahorros: boolean | null;
     meeting_at: string | null;
     age: number | null;
     quality_tier: string;

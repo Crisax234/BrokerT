@@ -118,9 +118,12 @@ export class SassClient {
         qualityTier?: string;
         scoreMin?: number;
         scoreMax?: number;
-        incomeMin?: number;
-        incomeMax?: number;
-        commune?: string;
+        rentaTotalMin?: number;
+        maxDividendoMin?: number;
+        bancarizado?: boolean;
+        ahorros?: boolean;
+        edadMin?: number;
+        edadMax?: number;
         meetingDate?: string;
         page?: number;
         pageSize?: number;
@@ -140,9 +143,12 @@ export class SassClient {
         if (options?.qualityTier) query = query.eq('quality_tier', options.qualityTier as LeadQuality);
         if (options?.scoreMin != null) query = query.gte('score', options.scoreMin);
         if (options?.scoreMax != null) query = query.lte('score', options.scoreMax);
-        if (options?.incomeMin != null) query = query.gte('estimated_income', options.incomeMin);
-        if (options?.incomeMax != null) query = query.lte('estimated_income', options.incomeMax);
-        if (options?.commune) query = query.ilike('current_commune', `%${options.commune}%`);
+        if (options?.rentaTotalMin != null) query = query.gte('renta_total', options.rentaTotalMin);
+        if (options?.maxDividendoMin != null) query = query.gte('max_dividendo', options.maxDividendoMin);
+        if (options?.bancarizado != null) query = query.eq('bancarizado', options.bancarizado);
+        if (options?.ahorros != null) query = query.eq('ahorros', options.ahorros);
+        if (options?.edadMin != null) query = query.gte('age', options.edadMin);
+        if (options?.edadMax != null) query = query.lte('age', options.edadMax);
         if (options?.meetingDate) {
             const dayStart = `${options.meetingDate}T00:00:00`;
             const dayEnd = `${options.meetingDate}T23:59:59`;
@@ -276,7 +282,7 @@ export class SassClient {
         if (!user) return { data: null, error: { message: 'Not authenticated' } };
         return this.client
             .from('reservations')
-            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, preferred_typology, estimated_income, budget_min, budget_max, meeting_at, age, quality_tier, score, status, reserved_at)')
+            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at)')
             .eq('seller_id', user.id)
             .order('reserved_at', { ascending: false });
     }
@@ -318,6 +324,19 @@ export class SassClient {
             .select('unit_number, status')
             .eq('project_id', projectId)
             .order('unit_number');
+    }
+
+    async getAvailableUnitCounts(): Promise<Record<string, number>> {
+        const { data, error } = await this.client
+            .from('units')
+            .select('project_id')
+            .in('status', ['available', 'sin_abono'] as UnitStatus[]);
+        if (error || !data) return {};
+        const counts: Record<string, number> = {};
+        for (const row of data) {
+            counts[row.project_id] = (counts[row.project_id] || 0) + 1;
+        }
+        return counts;
     }
 
     getSupabaseClient() {

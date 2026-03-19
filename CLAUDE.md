@@ -108,6 +108,7 @@ Sidebar menu items: Dashboard, Leads, Mi Agenda (My Leads), Stock, Reservas, Set
 
 ### Calculations (`nextjs/src/lib/calculations/`)
 - `escenario.ts` — Investment scenario engine. Core functions: `pmtExcel()`, `monthlyMortgage()`, `creditPct()`, `piePesos()`, `totalPie()`, `abonoTotal()`, `paymentPlanOption1/2()`, `cashFlow()`, `wealthProjection()`, `mortgageScenarios()`. Main export: `computeEscenario()`.
+- `lead-financials.ts` — Lead financial qualification helpers: `rentaTotal()`, `egresosTotal()`, `maxDividendo()`. Used by components reading from `leads` table directly (not the view which computes these).
 
 ### Types
 - `lib/types.ts` — Auto-generated from Supabase schema (do not edit manually)
@@ -131,7 +132,7 @@ Sidebar menu items: Dashboard, Leads, Mi Agenda (My Leads), Stock, Reservas, Set
 ## Domain Model (from planV3.md)
 
 The core business flow is:
-1. **Lead browsing** — Sellers view anonymized leads (score, age, occupation, income) via TanStack Table
+1. **Lead browsing** — Sellers view anonymized leads (score, age, renta total, egresos, max dividendo, bancarizado, ahorros) via TanStack Table
 2. **Lead reservation** — Costs credits/subscription, reveals contact info, exclusive lock
 3. **Appointment** — Calendar scheduling via Cal.com integration
 4. **Unit reservation** — Links a specific property unit to the reserved lead
@@ -139,8 +140,8 @@ The core business flow is:
 
 Key database tables:
 - `seller_profiles` — User/seller information
-- `leads` — Leads with status tracking and exclusive reservations
-- `leads_browsable` VIEW — Hides contact data unless current user owns the reservation
+- `leads` — Leads with financial qualification data (liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros) and exclusive reservations
+- `leads_browsable` VIEW — Hides contact data unless reserved by current user; computes `renta_total`, `egresos_total`, `max_dividendo` (25% banking rule)
 - `projects` — Real estate projects
 - `units` — Property units with pricing (normalized columns + `raw_data` JSONB)
 - `reservations` — Unit reservations linking leads and sellers

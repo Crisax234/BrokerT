@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import { QualityBadge } from '@/components/crm/QualityBadge';
 import { ScoreBadge } from '@/components/crm/ScoreBadge';
-import { formatCLP, formatUF } from '@/components/crm/FormatCurrency';
+import { formatCLP } from '@/components/crm/FormatCurrency';
+import { rentaTotal, egresosTotal, maxDividendo } from '@/lib/calculations/lead-financials';
 import { ReservationUnitCard } from './ReservationUnitCard';
 import {
     ArrowLeft,
@@ -21,11 +22,8 @@ import {
     Phone,
     Briefcase,
     MapPin,
-    Building2,
-    DollarSign,
     Calendar,
     FileText,
-    X,
 } from 'lucide-react';
 import type { ClientGroup } from './types';
 
@@ -56,6 +54,15 @@ function InfoRow({
     );
 }
 
+function FinancialRow({ label, value, bold = false }: { label: string; value?: string; bold?: boolean }) {
+    return (
+        <div className={`flex items-center justify-between text-sm ${bold ? 'font-semibold' : ''}`}>
+            <span className={bold ? '' : 'text-muted-foreground'}>{label}</span>
+            {value !== undefined && <span className="font-medium">{value}</span>}
+        </div>
+    );
+}
+
 export function ClientDetailView({
     group,
     onBack,
@@ -65,6 +72,11 @@ export function ClientDetailView({
 }: ClientDetailViewProps) {
     const { lead, reservations } = group;
     const [docsOpen, setDocsOpen] = useState(false);
+
+    const renta = lead ? rentaTotal(lead) : 0;
+    const egresos = lead ? egresosTotal(lead) : 0;
+    const maxDiv = lead ? maxDividendo(lead) : 0;
+    const hasCreditCapacity = maxDiv > 0;
 
     return (
         <div className="space-y-5">
@@ -106,36 +118,58 @@ export function ClientDetailView({
                                 <InfoRow icon={User} label="RUT" value={lead.rut} />
                                 <InfoRow icon={Briefcase} label="Ocupacion" value={lead.occupation} />
                                 <InfoRow icon={MapPin} label="Comuna" value={lead.current_commune} />
-                                <InfoRow icon={Building2} label="Tipologia pref." value={lead.preferred_typology} />
                                 {lead.age && (
                                     <InfoRow icon={User} label="Edad" value={`${lead.age} anos`} />
                                 )}
                             </div>
 
-                            {/* Financial info */}
-                            {(lead.estimated_income || lead.budget_min || lead.budget_max) && (
-                                <>
-                                    <Separator />
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        {lead.estimated_income && (
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-                                                <span className="text-muted-foreground">Ingreso:</span>
-                                                <span className="font-medium">{formatCLP(lead.estimated_income)}</span>
-                                            </div>
-                                        )}
-                                        {(lead.budget_min || lead.budget_max) && (
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-                                                <span className="text-muted-foreground">Presupuesto:</span>
-                                                <span className="font-medium">
-                                                    {formatUF(lead.budget_min)} - {formatUF(lead.budget_max)}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
+                            {/* Financial sections */}
+                            <Separator />
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Renta</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                    <FinancialRow label="Liquidaciones" value={formatCLP(lead.liquidaciones)} />
+                                    <FinancialRow label="Honorarios" value={formatCLP(lead.honorarios)} />
+                                    <FinancialRow label="Arriendos" value={formatCLP(lead.arriendos)} />
+                                    <FinancialRow label="Retiros" value={formatCLP(lead.retiros)} />
+                                </div>
+                                <FinancialRow label="RENTA TOTAL" value={formatCLP(renta)} bold />
+                            </div>
+
+                            <Separator />
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Egresos</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                    <FinancialRow label="Cuota C. Consumo" value={formatCLP(lead.cuota_credito_consumo)} />
+                                    <FinancialRow label="Dividendo Actual" value={formatCLP(lead.dividendo_actual)} />
+                                </div>
+                                <FinancialRow label="EGRESO MENSUAL TOTAL" value={formatCLP(egresos)} bold />
+                            </div>
+
+                            <Separator />
+                            <FinancialRow label="MAXIMO DIVIDENDO A OFRECER" value={formatCLP(maxDiv)} bold />
+
+                            {/* Status bar */}
+                            {hasCreditCapacity ? (
+                                <div className="bg-green-400 text-green-950 font-bold text-sm px-4 py-2 rounded">
+                                    CONTINUAR DE FORMA NORMAL
+                                </div>
+                            ) : (
+                                <div className="bg-red-400 text-red-950 font-bold text-sm px-4 py-2 rounded">
+                                    SIN CAPACIDAD DE CREDITO
+                                </div>
                             )}
+
+                            <Separator />
+
+                            {/* Info Personal */}
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Info Personal</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                                    <FinancialRow label="Bancarizado" value={lead.bancarizado ? 'Si' : 'No'} />
+                                    <FinancialRow label="Ahorros" value={lead.ahorros ? 'con ahorros' : 'sin ahorros'} />
+                                </div>
+                            </div>
 
                             {/* Meeting */}
                             {lead.meeting_at && (
@@ -213,7 +247,7 @@ export function ClientDetailView({
                                 <FileText className="h-5 w-5" />
                                 Documentos
                             </DialogTitle>
-                            
+
                         </div>
                     </DialogHeader>
                     <div className="py-8 text-center text-muted-foreground text-sm">

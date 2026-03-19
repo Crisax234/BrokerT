@@ -127,16 +127,6 @@ COMUNAS_RESIDENCIA = [
     "Viña del Mar", "Valparaíso", "Concepción", "Temuco", "Rancagua",
 ]
 
-# Communes where leads want to buy (projects exist in some of these)
-COMUNAS_COMPRA = [
-    "Santiago", "Ñuñoa", "La Cisterna", "Macul", "San Miguel",
-    "Estación Central", "Providencia", "Las Condes", "Independencia",
-    "Recoleta", "La Florida", "Maipú", "Quilicura", "Peñalolén",
-    "Villarrica",
-]
-
-TYPOLOGIES = ["1D1B", "2D1B", "2D2B", "3D2B"]
-
 SOURCES = ["web", "referral", "instagram", "facebook", "portal_inmobiliario"]
 SOURCE_WEIGHTS = [30, 15, 20, 20, 15]
 
@@ -181,72 +171,47 @@ def generate_unique_ruts(count: int) -> list:
     return [format_rut(n) for n in rut_numbers]
 
 
-# ── Age range helper ──────────────────────────────────────────────────────────
-
-def age_to_range(age: int) -> str:
-    if age <= 30:
-        return "25-30"
-    if age <= 40:
-        return "31-40"
-    if age <= 50:
-        return "41-50"
-    if age <= 60:
-        return "51-60"
-    return "61-65"
-
-
-# ── Income range helper ──────────────────────────────────────────────────────
-
-def income_to_range(income: int) -> str:
-    if income < 800_000:
-        return "< 800K"
-    if income < 1_200_000:
-        return "800K-1.2M"
-    if income < 1_500_000:
-        return "1.2M-1.5M"
-    if income < 2_500_000:
-        return "1.5M-2.5M"
-    if income < 4_000_000:
-        return "2.5M-4M"
-    return "4M+"
-
-
 # ── Lead generation ──────────────────────────────────────────────────────────
 
 TIER_CONFIG = {
     "cold": {
         "score_range": (0, 39),
-        "income_range": (600_000, 1_500_000),
-        "budget_min_range": (1500, 2500),
-        "budget_max_range": (2500, 3000),
+        "liquidaciones_range": (400_000, 800_000),
+        "honorarios_range": (0, 100_000),
+        "bancarizado_pct": 0.30,
+        "ahorros_pct": 0.15,
         "occupation_pools": ["general", "professional_mid"],
-        "typology_weights": [40, 35, 20, 5],  # more 1D1B, 2D1B
     },
     "warm": {
         "score_range": (40, 59),
-        "income_range": (1_200_000, 2_500_000),
-        "budget_min_range": (2000, 3500),
-        "budget_max_range": (3500, 4500),
+        "liquidaciones_range": (800_000, 1_500_000),
+        "honorarios_range": (0, 300_000),
+        "bancarizado_pct": 0.55,
+        "ahorros_pct": 0.35,
         "occupation_pools": ["professional_mid", "professional_high"],
-        "typology_weights": [15, 35, 35, 15],
     },
     "hot": {
         "score_range": (60, 79),
-        "income_range": (2_000_000, 4_000_000),
-        "budget_min_range": (3500, 5500),
-        "budget_max_range": (5500, 7000),
+        "liquidaciones_range": (1_200_000, 2_500_000),
+        "honorarios_range": (0, 500_000),
+        "bancarizado_pct": 0.75,
+        "ahorros_pct": 0.55,
         "occupation_pools": ["professional_high", "executive"],
-        "typology_weights": [5, 20, 40, 35],
     },
     "premium": {
         "score_range": (80, 100),
-        "income_range": (3_000_000, 6_000_000),
-        "budget_min_range": (5000, 7500),
-        "budget_max_range": (7500, 10000),
+        "liquidaciones_range": (2_000_000, 4_500_000),
+        "honorarios_range": (0, 1_000_000),
+        "bancarizado_pct": 0.90,
+        "ahorros_pct": 0.75,
         "occupation_pools": ["executive", "professional_high"],
-        "typology_weights": [0, 10, 35, 55],  # more 3D2B
     },
 }
+
+
+def round_50k(value: int) -> int:
+    """Round to nearest 50,000."""
+    return round(value / 50_000) * 50_000
 
 
 def generate_lead(tier: str, rut: str) -> dict:
@@ -279,35 +244,26 @@ def generate_lead(tier: str, rut: str) -> dict:
     # Score (correlated with tier)
     score = random.randint(*cfg["score_range"])
 
-    # Income (round to nearest 50K)
-    income_raw = random.randint(*cfg["income_range"])
-    income = round(income_raw / 50_000) * 50_000
+    # Financial: RENTA
+    liquidaciones = round_50k(random.randint(*cfg["liquidaciones_range"]))
+    honorarios = round_50k(random.randint(*cfg["honorarios_range"]))
+    arriendos = round_50k(random.randint(0, 300_000)) if random.random() < 0.20 else 0
+    retiros = round_50k(random.randint(0, 200_000)) if random.random() < 0.10 else 0
+
+    # Financial: EGRESOS
+    cuota_credito_consumo = round_50k(random.randint(0, 200_000)) if random.random() < 0.40 else 0
+    dividendo_actual = round_50k(random.randint(0, 350_000)) if random.random() < 0.25 else 0
+
+    # Info personal
+    bancarizado = random.random() < cfg["bancarizado_pct"]
+    ahorros = random.random() < cfg["ahorros_pct"]
 
     # Occupation
     pool_name = random.choice(cfg["occupation_pools"])
     occupation = random.choice(OCCUPATIONS[pool_name])
 
-    # Budget (UF)
-    budget_min = random.randint(*cfg["budget_min_range"])
-    budget_max = random.randint(*cfg["budget_max_range"])
-    if budget_max <= budget_min:
-        budget_max = budget_min + random.randint(300, 800)
-
-    # Typology
-    typology = random.choices(TYPOLOGIES, weights=cfg["typology_weights"], k=1)[0]
-
-    # Communes
+    # Commune
     current_commune = random.choice(COMUNAS_RESIDENCIA)
-    num_preferred = random.randint(1, 3)
-    preferred_communes = random.sample(COMUNAS_COMPRA, num_preferred)
-
-    # Family size (slight correlation: older/higher income → bigger families)
-    base_family = 1
-    if age > 35:
-        base_family = 2
-    if income > 2_000_000:
-        base_family += 1
-    family_size = min(5, max(1, base_family + random.randint(-1, 2)))
 
     # Source
     source = random.choices(SOURCES, weights=SOURCE_WEIGHTS, k=1)[0]
@@ -316,16 +272,16 @@ def generate_lead(tier: str, rut: str) -> dict:
         "quality_tier":           tier,
         "score":                  score,
         "age":                    age,
-        "age_range":              age_to_range(age),
         "occupation":             occupation,
-        "estimated_income":       income,
-        "estimated_income_range": income_to_range(income),
         "current_commune":        current_commune,
-        "family_size":            family_size,
-        "preferred_typology":     typology,
-        "budget_min":             float(budget_min),
-        "budget_max":             float(budget_max),
-        "preferred_communes":     preferred_communes,
+        "liquidaciones":          liquidaciones,
+        "honorarios":             honorarios,
+        "arriendos":              arriendos,
+        "retiros":                retiros,
+        "cuota_credito_consumo":  cuota_credito_consumo,
+        "dividendo_actual":       dividendo_actual,
+        "bancarizado":            bancarizado,
+        "ahorros":                ahorros,
         "full_name":              full_name,
         "email":                  email,
         "phone":                  phone,

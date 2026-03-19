@@ -13,7 +13,7 @@ import { RPCResult } from '@/lib/crm-types';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { ScoreBadge } from '@/components/crm/ScoreBadge';
 import { QualityBadge } from '@/components/crm/QualityBadge';
-import { formatCLP, formatUF } from '@/components/crm/FormatCurrency';
+import { formatCLP } from '@/components/crm/FormatCurrency';
 import { ConfirmDialog } from '@/components/crm/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +50,10 @@ export default function LeadsBrowsingPage() {
     // Filters
     const [qualityTier, setQualityTier] = useState<string>('');
     const [scoreMin, setScoreMin] = useState<string>('');
+    const [rentaTotalMin, setRentaTotalMin] = useState<string>('');
+    const [maxDividendoMin, setMaxDividendoMin] = useState<string>('');
+    const [bancarizado, setBancarizado] = useState<string>('all');
+    const [ahorros, setAhorros] = useState<string>('all');
     const [meetingDate, setMeetingDate] = useState<string>('');
 
     // Pagination
@@ -63,6 +67,10 @@ export default function LeadsBrowsingPage() {
             const { data, count, error } = await client.getLeadsBrowsable({
                 qualityTier: qualityTier || undefined,
                 scoreMin: scoreMin ? Number(scoreMin) : undefined,
+                rentaTotalMin: rentaTotalMin ? Number(rentaTotalMin) : undefined,
+                maxDividendoMin: maxDividendoMin ? Number(maxDividendoMin) : undefined,
+                bancarizado: bancarizado === 'all' ? undefined : bancarizado === 'si',
+                ahorros: ahorros === 'all' ? undefined : ahorros === 'si',
                 meetingDate: meetingDate || undefined,
                 page,
                 pageSize,
@@ -78,7 +86,7 @@ export default function LeadsBrowsingPage() {
         } finally {
             setLoading(false);
         }
-    }, [qualityTier, scoreMin, meetingDate, page]);
+    }, [qualityTier, scoreMin, rentaTotalMin, maxDividendoMin, bancarizado, ahorros, meetingDate, page]);
 
     useEffect(() => {
         fetchLeads();
@@ -150,23 +158,25 @@ export default function LeadsBrowsingPage() {
             header: 'Edad',
             cell: (info) => info.getValue() ?? '-',
         }),
-        columnHelper.accessor('occupation', {
-            header: 'Ocupacion',
-            cell: (info) => info.getValue() ?? '-',
-        }),
-        columnHelper.accessor('estimated_income', {
-            header: 'Ingreso',
+        columnHelper.accessor('renta_total', {
+            header: 'Renta Total',
             cell: (info) => formatCLP(info.getValue()),
         }),
-        columnHelper.display({
-            id: 'budget',
-            header: 'Presupuesto',
-            cell: ({ row }) => {
-                const min = row.original.budget_min;
-                const max = row.original.budget_max;
-                if (!min && !max) return '-';
-                return `${formatUF(min)} - ${formatUF(max)}`;
-            },
+        columnHelper.accessor('egresos_total', {
+            header: 'Egresos Total',
+            cell: (info) => formatCLP(info.getValue()),
+        }),
+        columnHelper.accessor('max_dividendo', {
+            header: 'Max. Dividendo',
+            cell: (info) => formatCLP(info.getValue()),
+        }),
+        columnHelper.accessor('bancarizado', {
+            header: 'Bancarizado',
+            cell: (info) => info.getValue() ? 'Si' : 'No',
+        }),
+        columnHelper.accessor('ahorros', {
+            header: 'Ahorros',
+            cell: (info) => info.getValue() ? 'Con' : 'Sin',
         }),
         columnHelper.accessor('email', {
             header: 'Email',
@@ -240,6 +250,52 @@ export default function LeadsBrowsingPage() {
                         value={scoreMin}
                         onChange={(e) => { setScoreMin(e.target.value); setPage(1); }}
                     />
+                </div>
+                <div>
+                    <label className="text-sm text-gray-500 block mb-1">Renta Total min.</label>
+                    <Input
+                        type="number"
+                        className="w-[140px]"
+                        placeholder="0"
+                        value={rentaTotalMin}
+                        onChange={(e) => { setRentaTotalMin(e.target.value); setPage(1); }}
+                    />
+                </div>
+                <div>
+                    <label className="text-sm text-gray-500 block mb-1">Max Dividendo min.</label>
+                    <Input
+                        type="number"
+                        className="w-[140px]"
+                        placeholder="0"
+                        value={maxDividendoMin}
+                        onChange={(e) => { setMaxDividendoMin(e.target.value); setPage(1); }}
+                    />
+                </div>
+                <div>
+                    <label className="text-sm text-gray-500 block mb-1">Bancarizado</label>
+                    <Select value={bancarizado} onValueChange={(v) => { setBancarizado(v); setPage(1); }}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="si">Si</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <label className="text-sm text-gray-500 block mb-1">Ahorros</label>
+                    <Select value={ahorros} onValueChange={(v) => { setAhorros(v); setPage(1); }}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="si">Con</SelectItem>
+                            <SelectItem value="no">Sin</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div>
                     <label className="text-sm text-gray-500 block mb-1">Fecha reunion</label>
