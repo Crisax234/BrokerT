@@ -167,7 +167,7 @@ export class SassClient {
         if (!user) return { data: null, error: { message: 'Not authenticated' } };
         return this.client
             .from('leads')
-            .select('*')
+            .select('id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at, pipeline_stage')
             .eq('reserved_by', user.id)
             .eq('status', 'reserved')
             .order('reserved_at', { ascending: false });
@@ -348,14 +348,39 @@ export class SassClient {
     }
 
     async getAvailableUnitCounts(): Promise<Record<string, number>> {
+        const { data, error } = await this.client.rpc('get_available_unit_counts');
+        if (error || !data) {
+            // Fallback to client-side count if RPC not available
+            const { data: fallbackData, error: fallbackError } = await this.client
+                .from('units')
+                .select('project_id')
+                .in('status', ['available', 'sin_abono'] as UnitStatus[]);
+            if (fallbackError || !fallbackData) return {};
+            const counts: Record<string, number> = {};
+            for (const row of fallbackData) {
+                counts[row.project_id] = (counts[row.project_id] || 0) + 1;
+            }
+            return counts;
+        }
+        const counts: Record<string, number> = {};
+        for (const row of data as { project_id: string; count: number }[]) {
+            counts[row.project_id] = Number(row.count);
+        }
+        return counts;
+    }
+
+    async getMyReservationCounts(): Promise<Record<string, number>> {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return {};
         const { data, error } = await this.client
-            .from('units')
-            .select('project_id')
-            .in('status', ['available', 'sin_abono'] as UnitStatus[]);
+            .from('reservations')
+            .select('lead_id, status')
+            .eq('seller_id', user.id)
+            .in('status', ['active', 'sold']);
         if (error || !data) return {};
         const counts: Record<string, number> = {};
         for (const row of data) {
-            counts[row.project_id] = (counts[row.project_id] || 0) + 1;
+            if (row.lead_id) counts[row.lead_id] = (counts[row.lead_id] || 0) + 1;
         }
         return counts;
     }

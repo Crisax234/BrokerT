@@ -1,22 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { createSPASassClient } from '@/lib/supabase/client';
-import { Database } from '@/lib/types';
+import { ReservedLead } from '@/lib/crm-types';
 import { useGlobal } from '@/lib/context/GlobalContext';
-import { LeadCalendar } from '@/components/crm/calendar/LeadCalendar';
-// import { UnscheduledLeadsSidebar } from '@/components/crm/calendar/UnscheduledLeadsSidebar';
-// import { LeadDetailDialog } from '@/components/crm/calendar/LeadDetailDialog';
-import { LeadDetailSidebar } from '@/components/crm/calendar/LeadDetailSidebar';
 
-type LeadRow = Database['public']['Tables']['leads']['Row'];
+const LeadCalendar = dynamic(
+    () => import('@/components/crm/calendar/LeadCalendar').then(m => m.LeadCalendar),
+    { ssr: false, loading: () => <div className="flex items-center justify-center h-[500px]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div></div> }
+);
+const LeadDetailSidebar = dynamic(
+    () => import('@/components/crm/calendar/LeadDetailSidebar').then(m => m.LeadDetailSidebar),
+    { ssr: false }
+);
 
 export default function MyLeadsPage() {
     const { refreshUser } = useGlobal();
-    const [leads, setLeads] = useState<LeadRow[]>([]);
+    const [leads, setLeads] = useState<ReservedLead[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [selectedLead, setSelectedLead] = useState<LeadRow | null>(null);
+    const [selectedLead, setSelectedLead] = useState<ReservedLead | null>(null);
 
     const fetchLeads = useCallback(async () => {
         setLoading(true);
@@ -27,7 +31,7 @@ export default function MyLeadsPage() {
                 console.error('Error fetching leads:', error);
                 return;
             }
-            setLeads(data ?? []);
+            setLeads((data as ReservedLead[]) ?? []);
         } catch (err) {
             console.error('Error:', err);
         } finally {
@@ -75,7 +79,7 @@ export default function MyLeadsPage() {
         }
     };
 
-    const handleSelectLead = useCallback((lead: LeadRow) => {
+    const handleSelectLead = useCallback((lead: ReservedLead) => {
         setSelectedLead(lead);
     }, []);
 

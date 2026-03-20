@@ -35,12 +35,10 @@ import {
     Clipboard,
     ClipboardCheck,
 } from 'lucide-react';
-import type { Database } from '@/lib/types';
-
-type LeadRow = Database['public']['Tables']['leads']['Row'];
+import type { ReservedLead } from '@/lib/crm-types';
 
 interface LeadDetailSidebarProps {
-    lead: LeadRow | null;
+    lead: ReservedLead | null;
     onClose: () => void;
     onRelease: (leadId: string) => void;
     releasing: boolean;

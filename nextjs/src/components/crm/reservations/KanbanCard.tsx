@@ -1,9 +1,8 @@
 'use client';
 
 import { Draggable } from '@hello-pangea/dnd';
-import { Badge } from '@/components/ui/badge';
-import { QualityBadge } from '@/components/crm/QualityBadge';
-import { ScoreBadge } from '@/components/crm/ScoreBadge';
+import { maxDividendo } from '@/lib/calculations/lead-financials';
+import { formatCLP } from '@/components/crm/FormatCurrency';
 import type { EnrichedLeadData } from './types';
 
 interface KanbanCardProps {
@@ -14,6 +13,8 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ lead, index, unitCount, onClick }: KanbanCardProps) {
+    const maxDiv = maxDividendo(lead);
+
     return (
         <Draggable draggableId={lead.id} index={index}>
             {(provided, snapshot) => (
@@ -26,18 +27,14 @@ export function KanbanCard({ lead, index, unitCount, onClick }: KanbanCardProps)
                         snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-300' : ''
                     }`}
                 >
-                    <div className="flex items-center gap-1 min-w-0">
-                        <p className="font-medium text-xs truncate flex-1">{lead.full_name}</p>
+                    <div className="flex items-center justify-between">
+                        <p className="font-medium text-xs truncate">{lead.full_name}</p>
                         {unitCount > 0 && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0 shrink-0">
-                                {unitCount}
-                            </Badge>
+                            <span className="text-[10px] bg-primary-100 text-primary-700 rounded px-1">{unitCount}</span>
                         )}
                     </div>
-                    <div className="flex items-center gap-1 mt-1">
-                        <QualityBadge tier={lead.quality_tier} />
-                        <ScoreBadge score={lead.score} />
-                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">{lead.email}</p>
+                    <p className="text-[11px] text-emerald-600 mt-0.5">Max div: {formatCLP(maxDiv)}</p>
                 </div>
             )}
         </Draggable>

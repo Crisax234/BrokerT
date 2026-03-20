@@ -6,8 +6,13 @@ import { createSPASassClient } from '@/lib/supabase/client';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { KanbanColumn, PIPELINE_STAGES } from '@/components/crm/reservations/KanbanColumn';
-import { ClientDetailView } from '@/components/crm/reservations/ClientDetailView';
+import dynamic from 'next/dynamic';
 import type { EnrichedLeadData, ReservationRow } from '@/components/crm/reservations/types';
+
+const ClientDetailView = dynamic(
+    () => import('@/components/crm/reservations/ClientDetailView').then(m => m.ClientDetailView),
+    { ssr: false }
+);
 
 export default function ReservationsPage() {
     const { refreshUser } = useGlobal();
@@ -40,19 +45,11 @@ export default function ReservationsPage() {
         }
     }, []);
 
-    // Fetch reservation counts per lead
+    // Fetch reservation counts per lead (lightweight query)
     const fetchUnitCounts = useCallback(async () => {
         try {
             const client = await createSPASassClient();
-            const { data, error } = await client.getMyReservations();
-            if (error || !data) return;
-            const counts: Record<string, number> = {};
-            for (const res of data as unknown as ReservationRow[]) {
-                const leadId = res.lead_id;
-                if (leadId && (res.status === 'active' || res.status === 'sold')) {
-                    counts[leadId] = (counts[leadId] || 0) + 1;
-                }
-            }
+            const counts = await client.getMyReservationCounts();
             setUnitCounts(counts);
         } catch (err) {
             console.error('Error fetching unit counts:', err);

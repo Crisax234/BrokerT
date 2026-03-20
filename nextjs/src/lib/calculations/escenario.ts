@@ -4,6 +4,7 @@
 // ============================================================
 
 export interface UnitData {
+  id: string;
   unit_number: string;
   typology: string | null;
   orientation: string | null;

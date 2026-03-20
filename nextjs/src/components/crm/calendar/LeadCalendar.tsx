@@ -4,15 +4,13 @@ import { useMemo, useCallback, useState } from 'react';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale/es';
-import type { Database } from '@/lib/types';
+import type { ReservedLead } from '@/lib/crm-types';
 import type { CalendarEvent } from './CalendarEventComponent';
 import { CalendarEventComponent } from './CalendarEventComponent';
 import { CalendarToolbar } from './CalendarToolbar';
 
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './calendar-styles.css';
-
-type LeadRow = Database['public']['Tables']['leads']['Row'];
 
 const locales = { es };
 
@@ -41,8 +39,8 @@ const messages = {
 };
 
 interface LeadCalendarProps {
-    leads: LeadRow[];
-    onSelectLead: (lead: LeadRow) => void;
+    leads: ReservedLead[];
+    onSelectLead: (lead: ReservedLead) => void;
 }
 
 export function LeadCalendar({ leads, onSelectLead }: LeadCalendarProps) {

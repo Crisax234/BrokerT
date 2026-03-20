@@ -1,16 +1,14 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { Database } from '@/lib/types';
-
-type LeadRow = Database['public']['Tables']['leads']['Row'];
+import type { ReservedLead } from '@/lib/crm-types';
 
 export interface CalendarEvent {
     id: string;
     title: string;
     start: Date;
     end: Date;
-    lead: LeadRow;
+    lead: ReservedLead;
 }
 
 const tierBorderColor: Record<string, string> = {

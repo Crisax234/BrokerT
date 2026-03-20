@@ -1,3 +1,29 @@
+/** Narrowed lead type matching getMyReservedLeads() select */
+export type ReservedLead = {
+    id: string;
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+    rut: string | null;
+    occupation: string | null;
+    current_commune: string | null;
+    liquidaciones: number | null;
+    honorarios: number | null;
+    arriendos: number | null;
+    retiros: number | null;
+    cuota_credito_consumo: number | null;
+    dividendo_actual: number | null;
+    bancarizado: boolean | null;
+    ahorros: boolean | null;
+    meeting_at: string | null;
+    age: number | null;
+    quality_tier: string | null;
+    score: number | null;
+    status: string;
+    reserved_at: string | null;
+    pipeline_stage: string;
+};
+
 export type RPCResult = {
     success: boolean;
     error?: string;

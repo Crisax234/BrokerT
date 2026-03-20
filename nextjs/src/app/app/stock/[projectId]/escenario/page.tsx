@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { createSPASassClient } from '@/lib/supabase/client';
 import { Database } from '@/lib/types';
+import { RPCResult } from '@/lib/crm-types';
+import { useGlobal } from '@/lib/context/GlobalContext';
 import { formatUF } from '@/components/crm/FormatCurrency';
 import {
     computeEscenario,
@@ -11,6 +13,12 @@ import {
     piePesos,
     UnitData,
 } from '@/lib/calculations/escenario';
+import dynamic from 'next/dynamic';
+
+const LeadPickerDialog = dynamic(
+    () => import('@/components/crm/LeadPickerDialog').then(m => m.LeadPickerDialog),
+    { ssr: false }
+);
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +28,16 @@ import {
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
     ArrowLeft,
@@ -115,6 +133,17 @@ export default function EscenarioPage() {
         if (unitParam) return [unitParam.trim()];
         return [];
     }, [searchParams]);
+
+    // ── Lead from URL params ─────────────────────────
+    const initialLeadId = searchParams.get('leadId');
+
+    // ── Reservation state ─────────────────────────────
+    const { refreshUser } = useGlobal();
+    const [leadPickerOpen, setLeadPickerOpen] = useState(false);
+    const [selectedLeadId, setSelectedLeadId] = useState<string | null>(initialLeadId);
+    const [selectedLeadName, setSelectedLeadName] = useState<string | null>(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [reserving, setReserving] = useState(false);
 
     // ── Core data ────────────────────────────────────
     const [project, setProject] = useState<ProjectRow | null>(null);
@@ -218,6 +247,7 @@ export default function EscenarioPage() {
             const { data } = await client.getUnitByProjectAndNumber(projectId, value.trim());
             if (data) {
                 const ud: UnitData = {
+                    id: data.id,
                     unit_number: data.unit_number,
                     typology: data.typology,
                     orientation: data.orientation,
@@ -274,6 +304,52 @@ export default function EscenarioPage() {
         });
     }, []);
 
+    // ── Valid units (needed before reservation handlers) ──
+    const validUnits = useMemo(() => unitData.filter((u): u is UnitData => u !== null), [unitData]);
+
+    // ── Reservation handlers ─────────────────────────
+    const handleLeadPicked = useCallback((pickedLeadId: string, pickedLeadName: string) => {
+        setSelectedLeadId(pickedLeadId);
+        setSelectedLeadName(pickedLeadName);
+        setConfirmOpen(true);
+    }, []);
+
+    const handleReserveUnits = useCallback(async () => {
+        if (validUnits.length === 0 || !selectedLeadId) return;
+        setReserving(true);
+        const results: { unitNumber: string; success: boolean; error?: string }[] = [];
+        try {
+            const client = await createSPASassClient();
+            for (const unit of validUnits) {
+                try {
+                    const result: RPCResult = await client.reserveUnit(unit.id, selectedLeadId);
+                    results.push({ unitNumber: unit.unit_number, success: result.success, error: result.error });
+                } catch (err) {
+                    results.push({ unitNumber: unit.unit_number, success: false, error: String(err) });
+                }
+            }
+            const successes = results.filter(r => r.success);
+            const failures = results.filter(r => !r.success);
+            let msg = `${successes.length} de ${results.length} unidades reservadas exitosamente.`;
+            if (failures.length > 0) {
+                msg += '\n\nErrores:\n' + failures.map(f => `• Unidad ${f.unitNumber}: ${f.error}`).join('\n');
+            }
+            alert(msg);
+            await refreshUser();
+        } catch (err) {
+            console.error('Reserve error:', err);
+            alert('Error al reservar unidades');
+        } finally {
+            setReserving(false);
+        }
+    }, [validUnits, selectedLeadId, refreshUser]);
+
+    const reserveDialogDescription = useMemo(() => {
+        const unitList = validUnits.map(u => u.unit_number).join(', ');
+        const leadLabel = selectedLeadName ?? (selectedLeadId ? selectedLeadId.slice(0, 8) + '...' : '');
+        return `Se reservarán ${validUnits.length} unidad(es): ${unitList}. Se vincularán con el lead: ${leadLabel}.`;
+    }, [validUnits, selectedLeadId, selectedLeadName]);
+
     // ── Parse payment conditions ─────────────────────
     const paymentConfig = useMemo(() => {
         const firstValidUnit = unitData.find((u) => u !== null) ?? null;
@@ -281,8 +357,6 @@ export default function EscenarioPage() {
     }, [project, unitData]);
 
     // ── Compute results ──────────────────────────────
-    const validUnits = useMemo(() => unitData.filter((u): u is UnitData => u !== null), [unitData]);
-
     const results = useMemo(() => {
         if (validUnits.length === 0 || ufValue <= 0) return null;
         return computeEscenario({
@@ -342,7 +416,7 @@ export default function EscenarioPage() {
     );
 
     return (
-        <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+        <div className={`p-6 space-y-6 max-w-[1400px] mx-auto ${validUnits.length > 0 ? 'pb-24' : ''}`}>
             {/* Back button */}
             <Button variant="outline" size="sm" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Volver al Stock
@@ -869,6 +943,60 @@ export default function EscenarioPage() {
                     )}
                 </div>
             </div>
+
+            {/* Floating reservation bar */}
+            {validUnits.length > 0 && (
+                <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-20 bg-white border-t shadow-lg px-6 py-3">
+                    <div className="flex items-center justify-between max-w-screen-xl mx-auto">
+                        <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-primary-100 text-primary-800 border-primary-300">
+                                {validUnits.length}
+                            </Badge>
+                            <span className="text-sm text-gray-700">
+                                {validUnits.length === 1 ? '1 unidad en escenario' : `${validUnits.length} unidades en escenario`}
+                            </span>
+                        </div>
+                        <Button
+                            disabled={reserving}
+                            onClick={() => {
+                                if (selectedLeadId) {
+                                    setConfirmOpen(true);
+                                } else {
+                                    setLeadPickerOpen(true);
+                                }
+                            }}
+                        >
+                            {reserving ? 'Reservando...' : `Reservar (${validUnits.length})`}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Lead picker dialog */}
+            <LeadPickerDialog
+                open={leadPickerOpen}
+                onOpenChange={setLeadPickerOpen}
+                onSelect={handleLeadPicked}
+            />
+
+            {/* Confirm reservation dialog */}
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Reservar Unidades</AlertDialogTitle>
+                        <AlertDialogDescription>{reserveDialogDescription}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            setConfirmOpen(false);
+                            handleReserveUnits();
+                        }}>
+                            Reservar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

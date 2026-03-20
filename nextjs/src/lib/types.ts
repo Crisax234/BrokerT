@@ -1145,6 +1145,13 @@ export type Database = {
         Args: { p_seller_id: string }
         Returns: undefined
       }
+      get_available_unit_counts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          count: number
+          project_id: string
+        }[]
+      }
       mark_unit_sold: {
         Args: {
           p_reservation_id: string

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { createSPASassClient } from '@/lib/supabase/client';
-import { Database } from '@/lib/types';
+import { ReservedLead } from '@/lib/crm-types';
 import { QualityBadge } from '@/components/crm/QualityBadge';
 import { ScoreBadge } from '@/components/crm/ScoreBadge';
 import {
@@ -15,8 +15,6 @@ import {
 import { User, Mail, MapPin, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-type LeadRow = Database['public']['Tables']['leads']['Row'];
-
 interface LeadPickerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -24,7 +22,7 @@ interface LeadPickerDialogProps {
 }
 
 export function LeadPickerDialog({ open, onOpenChange, onSelect }: LeadPickerDialogProps) {
-    const [leads, setLeads] = useState<LeadRow[]>([]);
+    const [leads, setLeads] = useState<ReservedLead[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -37,7 +35,7 @@ export function LeadPickerDialog({ open, onOpenChange, onSelect }: LeadPickerDia
             try {
                 const client = await createSPASassClient();
                 const { data } = await client.getMyReservedLeads();
-                if (!cancelled) setLeads(data ?? []);
+                if (!cancelled) setLeads((data as ReservedLead[]) ?? []);
             } catch (err) {
                 console.error('Error fetching reserved leads:', err);
             } finally {

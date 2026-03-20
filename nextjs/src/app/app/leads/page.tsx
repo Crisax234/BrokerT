@@ -32,8 +32,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import dynamic from 'next/dynamic';
 import { Lock, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { LeadBrowseSidebar } from '@/components/crm/LeadBrowseSidebar';
+
+const LeadBrowseSidebar = dynamic(
+    () => import('@/components/crm/LeadBrowseSidebar').then(m => m.LeadBrowseSidebar),
+    { ssr: false }
+);
 
 type LeadRow = Database['public']['Views']['leads_browsable']['Row'];
 
