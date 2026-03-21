@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { createSPASassClient } from '@/lib/supabase/client';
+
 import { ReservedLead } from '@/lib/crm-types';
 import { QualityBadge } from '@/components/crm/QualityBadge';
 import { ScoreBadge } from '@/components/crm/ScoreBadge';
@@ -30,18 +30,21 @@ export function LeadPickerDialog({ open, onOpenChange, onSelect }: LeadPickerDia
         if (!open) return;
         setSearchQuery('');
         let cancelled = false;
+
         async function load() {
             setLoading(true);
             try {
-                const client = await createSPASassClient();
-                const { data } = await client.getMyReservedLeads();
-                if (!cancelled) setLeads((data as ReservedLead[]) ?? []);
+                const res = await fetch('/api/leads/my');
+                if (cancelled) return;
+                const json = await res.json();
+                setLeads((json.data as ReservedLead[]) ?? []);
             } catch (err) {
                 console.error('Error fetching reserved leads:', err);
             } finally {
                 if (!cancelled) setLoading(false);
             }
         }
+
         load();
         return () => { cancelled = true; };
     }, [open]);

@@ -3,3 +3,5 @@
 # Supabase migrations
 supabase/migrations/
 supabase/migrations_for_old/
+
+docs/

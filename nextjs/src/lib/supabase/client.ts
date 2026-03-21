@@ -2,9 +2,15 @@ import {createBrowserClient} from '@supabase/ssr'
 import {ClientType, SassClient} from "@/lib/supabase/unified";
 import {Database} from "@/lib/types";
 
+// Browser calls go through Next.js rewrites to hide the Supabase URL from the Network tab.
+// Server-side calls use the real URL directly (never visible to the browser).
+const BROWSER_SUPABASE_URL = typeof window !== 'undefined'
+    ? '/supabase'
+    : process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
 export function createSPAClient() {
     return createBrowserClient<Database, "public", Database["public"]>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        BROWSER_SUPABASE_URL,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 }

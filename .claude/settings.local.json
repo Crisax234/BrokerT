@@ -38,7 +38,18 @@
       "Bash(yarn build:*)",
       "Bash(wc:*)",
       "Bash(find /home/crisax/millos/BrokerT/nextjs/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
-      "Bash(cat /home/crisax/millos/BrokerT/nextjs/src/app/app/stock/[projectId]/escenario/page.tsx)"
+      "Bash(cat /home/crisax/millos/BrokerT/nextjs/src/app/app/stock/[projectId]/escenario/page.tsx)",
+      "Bash(npm list:*)",
+      "Bash(echo:*)",
+      "Bash(claude --version)",
+      "Bash(mkdir -p /home/crisax/millos/BrokerT/nextjs/src/app/api/leads/my /home/crisax/millos/BrokerT/nextjs/src/app/api/leads/[leadId]/reserve /home/crisax/millos/BrokerT/nextjs/src/app/api/leads/[leadId]/release /home/crisax/millos/BrokerT/nextjs/src/app/api/leads/[leadId]/pipeline /home/crisax/millos/BrokerT/nextjs/src/app/api/leads/[leadId]/reservations)",
+      "Bash(mkdir -p /home/crisax/millos/BrokerT/nextjs/src/app/api/projects /home/crisax/millos/BrokerT/nextjs/src/app/api/projects/[projectId]/units)",
+      "Bash(mkdir -p /home/crisax/millos/BrokerT/nextjs/src/app/api/units/lookup /home/crisax/millos/BrokerT/nextjs/src/app/api/units/[unitId]/reserve)",
+      "Bash(mkdir -p /home/crisax/millos/BrokerT/nextjs/src/app/api/reservations/counts /home/crisax/millos/BrokerT/nextjs/src/app/api/reservations/[reservationId]/release /home/crisax/millos/BrokerT/nextjs/src/app/api/reservations/[reservationId]/sold)",
+      "Bash(find /home/crisax/millos/BrokerT/nextjs -name .env* -type f)",
+      "Bash(yarn list:*)",
+      "Bash(ls node_modules/@hello-pangea/dnd/dist/*.d.ts)",
+      "Bash(yarn install:*)"
     ]
   }
 }

@@ -2,8 +2,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
-
 
 type User = {
     // Auth data
@@ -34,31 +32,22 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
 
     const loadData = useCallback(async () => {
         try {
-            const supabase = await createSPASassClient();
-            const client = supabase.getSupabaseClient();
+            const res = await fetch('/api/profile');
+            if (!res.ok) throw new Error('Failed to load profile');
+            const { data } = await res.json();
 
-            const [{ data: { user } }, { data: profile }] = await Promise.all([
-                client.auth.getUser(),
-                supabase.getSellerProfile(),
-            ]);
-
-            if (user) {
-                setUser({
-                    email: user.email!,
-                    id: user.id,
-                    registered_at: new Date(user.created_at),
-                    full_name: profile?.full_name ?? '',
-                    is_verified: profile?.is_verified ?? false,
-                    available_credits: profile?.seller_accounts?.available_credits ?? 0,
-                    plan_reservations_remaining: profile?.seller_accounts?.plan_reservations_remaining ?? 0,
-                    current_period_end: profile?.seller_accounts?.current_period_end ?? null,
-                    lifetime_lead_reservations: profile?.seller_accounts?.lifetime_lead_reservations ?? 0,
-                    lifetime_unit_reservations: profile?.seller_accounts?.lifetime_unit_reservations ?? 0,
-                });
-            } else {
-                throw new Error('User not found');
-            }
-
+            setUser({
+                email: data.email,
+                id: data.id,
+                registered_at: new Date(data.registered_at),
+                full_name: data.full_name,
+                is_verified: data.is_verified,
+                available_credits: data.available_credits,
+                plan_reservations_remaining: data.plan_reservations_remaining,
+                current_period_end: data.current_period_end,
+                lifetime_lead_reservations: data.lifetime_lead_reservations,
+                lifetime_unit_reservations: data.lifetime_unit_reservations,
+            });
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
