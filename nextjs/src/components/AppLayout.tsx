@@ -13,12 +13,15 @@ import {
     ChevronDown,
     LogOut,
     Key,
+    PanelLeftClose,
+    PanelLeftOpen,
 } from 'lucide-react';
 import { useGlobal } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [isDesktopCollapsed, setDesktopCollapsed] = useState(false);
     const [isUserDropdownOpen, setUserDropdownOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
@@ -68,17 +71,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out z-30 
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+            <div className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out z-30
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isDesktopCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}`}>
 
                 <div className="h-16 flex items-center justify-between px-4 border-b">
                     <span className="text-xl font-semibold text-primary-600">{productName}</span>
-                    <button
-                        onClick={toggleSidebar}
-                        className="lg:hidden text-gray-500 hover:text-gray-700"
-                    >
-                        <X className="h-6 w-6" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setDesktopCollapsed(true)}
+                            className="hidden lg:block text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100"
+                            title="Cerrar sidebar"
+                        >
+                            <PanelLeftClose className="h-5 w-5" />
+                        </button>
+                        <button
+                            onClick={toggleSidebar}
+                            className="lg:hidden text-gray-500 hover:text-gray-700"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Navigation */}
@@ -110,14 +122,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             </div>
 
-            <div className="lg:pl-64">
+            <div className={`transition-all duration-200 ${isDesktopCollapsed ? '' : 'lg:pl-64'}`}>
                 <div className="sticky top-0 z-10 flex items-center justify-between h-16 bg-white shadow-sm px-4">
-                    <button
-                        onClick={toggleSidebar}
-                        className="lg:hidden text-gray-500 hover:text-gray-700"
-                    >
-                        <Menu className="h-6 w-6"/>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={toggleSidebar}
+                            className="lg:hidden text-gray-500 hover:text-gray-700"
+                        >
+                            <Menu className="h-6 w-6"/>
+                        </button>
+                        {isDesktopCollapsed && (
+                            <button
+                                onClick={() => setDesktopCollapsed(false)}
+                                className="hidden lg:block text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100"
+                                title="Abrir sidebar"
+                            >
+                                <PanelLeftOpen className="h-5 w-5"/>
+                            </button>
+                        )}
+                    </div>
 
                     <div className="relative ml-auto">
                         <button
