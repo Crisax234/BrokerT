@@ -47,8 +47,8 @@ export interface EscenarioInputs {
 /** Excel PMT function (annual rate, annual periods) */
 function pmtExcel(rate: number, nper: number, pv: number): number {
   if (rate === 0) return -pv / nper;
-  return (rate * Math.pow(1 + rate, nper) * pv) /
-    (Math.pow(1 + rate, nper) - 1);
+  return -((rate * Math.pow(1 + rate, nper) * pv) /
+    (Math.pow(1 + rate, nper) - 1));
 }
 
 /** Monthly mortgage payment — matches Excel formula exactly.
