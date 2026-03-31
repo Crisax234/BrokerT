@@ -8,10 +8,19 @@ const BROWSER_SUPABASE_URL = typeof window !== 'undefined'
     ? `${window.location.origin}/supabase`
     : process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
+// The storage key MUST be derived from the real Supabase URL so that the cookie name
+// matches between the browser client and the server middleware (which uses the real URL).
+const REAL_PROJECT_REF = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0];
+
 export function createSPAClient() {
     return createBrowserClient<Database, "public", Database["public"]>(
         BROWSER_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            auth: {
+                storageKey: `sb-${REAL_PROJECT_REF}-auth-token`,
+            },
+        }
     )
 }
 
