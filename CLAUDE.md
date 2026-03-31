@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BrokerT is a real estate CRM SaaS platform for direct property sales management in Chile. It is built on top of a Supabase + Next.js SaaS template and extended with domain-specific lead management, unit reservations, investment scenario calculators, and sales tracking. The business logic and database schema are documented in detail in `planV3.md` (in Spanish).
+BETA+ is a real estate CRM SaaS platform for direct property sales management in Chile. It is built on top of a Supabase + Next.js SaaS template and extended with domain-specific lead management, unit reservations, investment scenario calculators, and sales tracking. The business logic and database schema are documented in detail in `planV3.md` (in Spanish).
 
 The repository has two frontends sharing a single Supabase backend:
 - **`nextjs/`** — Web app (Next.js 15 App Router, React 19, Tailwind CSS, shadcn/ui)
@@ -168,7 +168,7 @@ All tables use Row-Level Security (RLS) policies.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 PRIVATE_SUPABASE_SERVICE_KEY=
-NEXT_PUBLIC_PRODUCTNAME=BrokerT
+NEXT_PUBLIC_PRODUCTNAME=BETA+
 NEXT_PUBLIC_THEME=theme-sass
 NEXT_PUBLIC_GOOGLE_TAG=
 ```
