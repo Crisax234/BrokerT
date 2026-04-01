@@ -238,12 +238,13 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
 
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">Explorar Leads</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-secondary-900">Explorar Leads</h1>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-3 items-end">
+            <div className="rounded-lg border border-secondary-200 bg-white p-4">
+                <div className="flex flex-wrap gap-3 items-end">
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Calidad</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Calidad</label>
                     <Select value={qualityTier} onValueChange={(v) => { setQualityTier(v === 'all' ? '' : v); setPage(1); }}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue placeholder="Todas" />
@@ -258,7 +259,7 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                     </Select>
                 </div>
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Score min.</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Score min.</label>
                     <Input
                         type="number"
                         className="w-[100px]"
@@ -268,7 +269,7 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                     />
                 </div>
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Renta Total min.</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Renta Total min.</label>
                     <Input
                         type="number"
                         className="w-[140px]"
@@ -278,7 +279,7 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                     />
                 </div>
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Max Dividendo min.</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Max Dividendo min.</label>
                     <Input
                         type="number"
                         className="w-[140px]"
@@ -288,7 +289,7 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                     />
                 </div>
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Bancarizado</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Bancarizado</label>
                     <Select value={bancarizado} onValueChange={(v) => { setBancarizado(v); setPage(1); }}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue />
@@ -301,7 +302,7 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                     </Select>
                 </div>
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Ahorros</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Ahorros</label>
                     <Select value={ahorros} onValueChange={(v) => { setAhorros(v); setPage(1); }}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue />
@@ -314,13 +315,14 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                     </Select>
                 </div>
                 <div>
-                    <label className="text-sm text-gray-500 block mb-1">Fecha reunion</label>
+                    <label className="text-sm text-secondary-500 block mb-1">Fecha reunion</label>
                     <Input
                         type="date"
                         className="w-[160px]"
                         value={meetingDate}
                         onChange={(e) => { setMeetingDate(e.target.value); setPage(1); }}
                     />
+                </div>
                 </div>
             </div>
 
@@ -360,7 +362,7 @@ export default function LeadsTable({ initialLeads, initialCount }: LeadsTablePro
                                         <TableRow
                                             key={row.id}
                                             className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                                                selectedLead?.id === row.original.id ? 'bg-muted' : ''
+                                                selectedLead?.id === row.original.id ? 'bg-primary-50 ring-1 ring-inset ring-primary-200' : ''
                                             }`}
                                             onClick={() => setSelectedLead(row.original)}
                                         >
