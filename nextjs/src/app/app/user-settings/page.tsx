@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
 import { Key, User, CheckCircle } from 'lucide-react';
@@ -15,12 +17,10 @@ export default function UserSettingsPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-
-
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPassword !== confirmPassword) {
-            setError("New passwords don't match");
+            setError('Las contraseñas no coinciden');
             return;
         }
 
@@ -38,7 +38,7 @@ export default function UserSettingsPage() {
 
             if (error) throw error;
 
-            setSuccess('Password updated successfully');
+            setSuccess('Contraseña actualizada correctamente');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err: Error | unknown) {
@@ -47,21 +47,19 @@ export default function UserSettingsPage() {
                 setError(err.message);
             } else {
                 console.error('Error updating password:', err);
-                setError('Failed to update password');
+                setError('Error al actualizar la contraseña');
             }
         } finally {
             setLoading(false);
         }
     };
 
-
-
     return (
-        <div className="space-y-6 p-6">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">User Settings</h1>
-                <p className="text-muted-foreground">
-                    Manage your account settings and preferences
+        <div className="space-y-6">
+            <div className="space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight text-secondary-900">Configuración</h1>
+                <p className="text-sm text-secondary-500">
+                    Administra tu cuenta y preferencias
                 </p>
             </div>
 
@@ -78,81 +76,79 @@ export default function UserSettingsPage() {
                 </Alert>
             )}
 
-            <div className="grid gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <User className="h-5 w-5" />
-                                User Details
-                            </CardTitle>
-                            <CardDescription>Your account information</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+            <div className="max-w-3xl space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <User className="h-5 w-5" />
+                            Detalles de Usuario
+                        </CardTitle>
+                        <CardDescription>Información de tu cuenta</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-secondary-500">Nombre</label>
+                            <p className="mt-1 text-sm text-secondary-900">{user?.full_name || 'Sin nombre'}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-secondary-500">Email</label>
+                            <p className="mt-1 text-sm text-secondary-900">{user?.email}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Key className="h-5 w-5" />
+                            Cambiar Contraseña
+                        </CardTitle>
+                        <CardDescription>Actualiza la contraseña de tu cuenta</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handlePasswordChange} className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium text-gray-500">User ID</label>
-                                <p className="mt-1 text-sm">{user?.id}</p>
+                                <label htmlFor="new-password" className="block text-sm font-medium text-secondary-700">
+                                    Nueva Contraseña
+                                </label>
+                                <Input
+                                    type="password"
+                                    id="new-password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="mt-1"
+                                    required
+                                />
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-500">Email</label>
-                                <p className="mt-1 text-sm">{user?.email}</p>
+                                <label htmlFor="confirm-password" className="block text-sm font-medium text-secondary-700">
+                                    Confirmar Nueva Contraseña
+                                </label>
+                                <Input
+                                    type="password"
+                                    id="confirm-password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="mt-1"
+                                    required
+                                />
                             </div>
-                        </CardContent>
-                    </Card>
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-primary-600 hover:bg-primary-700 text-white"
+                            >
+                                {loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Key className="h-5 w-5" />
-                                Change Password
-                            </CardTitle>
-                            <CardDescription>Update your account password</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handlePasswordChange} className="space-y-4">
-                                <div>
-                                    <label htmlFor="new-password" className="block text-sm font-medium text-gray-700">
-                                        New Password
-                                    </label>
-                                    <input
-                                        type="password"
-                                        id="new-password"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 text-sm"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
-                                        Confirm New Password
-                                    </label>
-                                    <input
-                                        type="password"
-                                        id="confirm-password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 text-sm"
-                                        required
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-                                >
-                                    {loading ? 'Updating...' : 'Update Password'}
-                                </button>
-                            </form>
-                        </CardContent>
-                    </Card>
-
-                    <MFASetup
-                        onStatusChange={() => {
-                            setSuccess('Two-factor authentication settings updated successfully');
-                        }}
-                    />
-                </div>
+                <MFASetup
+                    onStatusChange={() => {
+                        setSuccess('Configuración de autenticación de dos factores actualizada');
+                    }}
+                />
             </div>
         </div>
     );
