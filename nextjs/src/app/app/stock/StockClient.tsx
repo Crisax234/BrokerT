@@ -214,7 +214,7 @@ function StockPageContent({ initialProjects, initialUnitCounts }: StockClientPro
                         Volver
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold">Stock de Unidades</h1>
+                        <h1 className="text-2xl font-bold tracking-tight text-secondary-900">Stock de Unidades</h1>
                         <p className="text-sm text-muted-foreground">{selectedProjectName}</p>
                     </div>
                 </div>
@@ -259,7 +259,7 @@ function StockPageContent({ initialProjects, initialUnitCounts }: StockClientPro
                                 <TableHead className="w-[50px]">
                                     <input
                                         type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 accent-primary-600"
                                         checked={units.length > 0 && units.every(u => selectedUnits.has(u.id))}
                                         onChange={toggleSelectAllVisible}
                                         disabled={units.length === 0}
@@ -293,7 +293,7 @@ function StockPageContent({ initialProjects, initialUnitCounts }: StockClientPro
                                         <TableCell>
                                             <input
                                                 type="checkbox"
-                                                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                                                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 accent-primary-600 disabled:opacity-50"
                                                 checked={selectedUnits.has(unit.id)}
                                                 onChange={() => toggleUnitSelection(unit)}
                                             />
@@ -368,7 +368,7 @@ function StockPageContent({ initialProjects, initialUnitCounts }: StockClientPro
     // Phase A: Project cards
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">Stock de Unidades</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-secondary-900">Stock de Unidades</h1>
 
             {/* Company filter */}
             <div>
@@ -415,7 +415,7 @@ function StockPageContent({ initialProjects, initialUnitCounts }: StockClientPro
                                         <span>{project.commune ?? '-'}</span>
                                     </div>
                                     <div className="pt-1">
-                                        <Badge variant={count > 0 ? 'default' : 'secondary'}>
+                                        <Badge variant="outline" className={count > 0 ? 'bg-primary-50 text-primary-800 border-primary-300 font-medium' : 'text-secondary-500'}>
                                             {count} {count === 1 ? 'unidad disponible' : 'unidades disponibles'}
                                         </Badge>
                                     </div>
