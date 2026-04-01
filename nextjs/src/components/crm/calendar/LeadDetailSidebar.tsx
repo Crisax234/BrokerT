@@ -7,6 +7,8 @@ import { QualityBadge } from '@/components/crm/QualityBadge';
 import { ScoreBadge } from '@/components/crm/ScoreBadge';
 import { ConfirmDialog } from '@/components/crm/ConfirmDialog';
 import { formatCLP } from '@/components/crm/FormatCurrency';
+import { EmptyState } from '@/components/crm/EmptyState';
+import { CalendarDays } from 'lucide-react';
 import { rentaTotal, egresosTotal, maxDividendo } from '@/lib/calculations/lead-financials';
 import {
     Dialog,
@@ -126,10 +128,12 @@ export function LeadDetailSidebar({
     if (!lead) {
         return (
             <div className="w-full lg:w-96 shrink-0">
-                <div className="border rounded-lg p-6 h-full flex items-center justify-center min-h-[580px] bg-white">
-                    <p className="text-sm text-muted-foreground text-center">
-                        Selecciona un lead del calendario para ver sus detalles.
-                    </p>
+                <div className="border border-secondary-200 rounded-lg p-6 h-full flex items-center justify-center min-h-[580px] bg-white">
+                    <EmptyState
+                        icon={CalendarDays}
+                        title="Sin lead seleccionado"
+                        subtitle="Haz clic en una reunión del calendario para ver los detalles del lead."
+                    />
                 </div>
             </div>
         );

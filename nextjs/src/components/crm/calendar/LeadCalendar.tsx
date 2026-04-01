@@ -91,7 +91,7 @@ export function LeadCalendar({ leads, onSelectLead }: LeadCalendarProps) {
                 events={events}
                 startAccessor="start"
                 endAccessor="end"
-                style={{ height: 650 }}
+                style={{ height: 'calc(100vh - 240px)', minHeight: 500 }}
                 view={view}
                 onView={setView}
                 date={date}

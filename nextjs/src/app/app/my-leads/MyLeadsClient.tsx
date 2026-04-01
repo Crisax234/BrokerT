@@ -88,13 +88,15 @@ export default function MyLeadsClient({ initialLeads }: MyLeadsClientProps) {
 
     return (
         <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">Mi Agenda</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-secondary-900">Mi Agenda</h1>
 
             <div className="flex flex-col lg:flex-row gap-6">
-                <LeadCalendar
-                    leads={scheduledLeads}
-                    onSelectLead={handleSelectLead}
-                />
+                <div className="flex-1 min-w-0 rounded-lg border border-secondary-200 bg-white p-4 overflow-hidden">
+                    <LeadCalendar
+                        leads={scheduledLeads}
+                        onSelectLead={handleSelectLead}
+                    />
+                </div>
                 {/* <UnscheduledLeadsSidebar
                     leads={unscheduledLeads}
                     onSelectLead={handleSelectLead}
