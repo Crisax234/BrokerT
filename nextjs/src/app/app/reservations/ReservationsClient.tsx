@@ -219,7 +219,7 @@ export default function ReservationsClient({ initialLeads, initialUnitCounts, in
     return (
         <div className="p-4 space-y-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Mis Clientes</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-secondary-900">Mis Clientes</h1>
                 <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'tabla')}>
                     <TabsList>
                         <TabsTrigger value="kanban">Kanban</TabsTrigger>
@@ -241,6 +241,7 @@ export default function ReservationsClient({ initialLeads, initialUnitCounts, in
                                 stageKey={stage.key}
                                 title={stage.title}
                                 color={stage.color}
+                                borderColor={stage.borderColor}
                                 leads={columnData[stage.key] ?? []}
                                 unitCounts={unitCounts}
                                 onCardClick={handleCardClick}
