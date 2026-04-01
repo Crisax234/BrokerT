@@ -174,13 +174,12 @@ export class SassClient {
     }
 
     async updateLeadPipelineStage(leadId: string, stage: string) {
-        const { data: { user } } = await this.client.auth.getUser();
-        if (!user) return { error: { message: 'Not authenticated' } };
-        return this.client
-            .from('leads')
-            .update({ pipeline_stage: stage })
-            .eq('id', leadId)
-            .eq('reserved_by', user.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (this.client.rpc as any)('update_lead_pipeline_stage', { p_lead_id: leadId, p_stage: stage });
+        if (error) return { error: { message: error.message } };
+        const result = data as { success: boolean; error?: string };
+        if (!result.success) return { error: { message: result.error ?? 'Unknown error' } };
+        return { error: null };
     }
 
     async getReservationsForLead(leadId: string) {
