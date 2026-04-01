@@ -59,7 +59,7 @@ npx supabase migrations up --linked
 - `/app/my-leads` — Calendar view of reserved leads (LeadCalendar + LeadDetailSidebar)
 - `/app/stock` — Unit inventory browsing with company/project/typology filters; supports multi-unit selection and "Escenario" calculator link
 - `/app/stock/[projectId]/escenario` — Investment scenario calculator for selected units
-- `/app/reservations` — View and manage unit reservations (mark sold, release)
+- `/app/reservations` — View and manage clients with Kanban (drag-drop pipeline) and Table (27-column TanStack Table) views, toggled via tabs
 - `/app/storage` — File storage (from template)
 - `/app/table` — Generic table (from template)
 - `/app/user-settings` — User settings and password change
@@ -81,7 +81,8 @@ Sidebar menu items: Dashboard, Leads, Mi Agenda (My Leads), Stock, Reservas, Set
   - **Profile:** `getSellerProfile()`
   - **Leads:** `getLeadsBrowsable()`, `getMyReservedLeads()`, `reserveLead()`, `releaseLead()`
   - **Projects/Units:** `getProjects()`, `getUnits()`, `reserveUnit()`, `releaseUnit()`, `markUnitSold()`
-  - **Reservations:** `getMyReservations()`
+  - **Reservations:** `getMyReservations()`, `getMyReservationCounts()`
+  - **Escenarios:** `saveEscenario()`, `getLatestEscenarioForLeads()`, `getEscenarioById()`
   - **UF Values:** `getLatestUFValue()`
   - **File storage:** `uploadFile()`, `getFiles()`, `deleteFile()`, `shareFile()`
   - **Tasks:** `getMyTodoList()`, `createTask()`, `removeTask()`, `updateAsDone()`
@@ -148,6 +149,7 @@ Key database tables:
 - `appointments` — Meeting scheduling
 - `subscriptions` & `seller_accounts` — Billing, credits, and subscription tier
 - `real_estate_companies` — Company metadata
+- `saved_escenarios` — Persisted escenario snapshots (JSONB inputs + results) linked to leads/projects; auto-saved on reservation
 
 Key database functions:
 - `reserve_lead()` and `reserve_unit()` — PostgreSQL functions using `FOR UPDATE NOWAIT` for exclusive locking

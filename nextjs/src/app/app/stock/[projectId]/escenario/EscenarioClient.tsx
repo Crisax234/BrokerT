@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Database } from '@/lib/types';
-import { RPCResult } from '@/lib/crm-types';
+import { RPCResult, ReservedLead } from '@/lib/crm-types';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { formatUF } from '@/components/crm/FormatCurrency';
 import {
@@ -12,12 +12,6 @@ import {
     piePesos,
     UnitData,
 } from '@/lib/calculations/escenario';
-import dynamic from 'next/dynamic';
-
-const LeadPickerDialog = dynamic(
-    () => import('@/components/crm/LeadPickerDialog').then(m => m.LeadPickerDialog),
-    { ssr: false }
-);
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -125,6 +119,7 @@ interface EscenarioClientProps {
     initialUnitLookup: UnitLookup[];
     initialUnits: string[];
     initialLeadId: string | null;
+    initialLeads: ReservedLead[];
 }
 
 export default function EscenarioClient({
@@ -134,14 +129,16 @@ export default function EscenarioClient({
     initialUnitLookup,
     initialUnits,
     initialLeadId,
+    initialLeads,
 }: EscenarioClientProps) {
     const router = useRouter();
 
     // ── Reservation state ─────────────────────────────
     const { refreshUser } = useGlobal();
-    const [leadPickerOpen, setLeadPickerOpen] = useState(false);
+    const [leads] = useState<ReservedLead[]>(initialLeads);
+    const preselectedLead = initialLeadId ? initialLeads.find(l => l.id === initialLeadId) : null;
     const [selectedLeadId, setSelectedLeadId] = useState<string | null>(initialLeadId);
-    const [selectedLeadName, setSelectedLeadName] = useState<string | null>(null);
+    const [selectedLeadName, setSelectedLeadName] = useState<string | null>(preselectedLead?.full_name ?? null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [reserving, setReserving] = useState(false);
 
@@ -151,7 +148,7 @@ export default function EscenarioClient({
     const [unitLookup] = useState<UnitLookup[]>(initialUnitLookup);
 
     // ── Input state ──────────────────────────────────
-    const [clientName, setClientName] = useState('');
+    const [clientName, setClientName] = useState(preselectedLead?.full_name ?? '');
     const [numDepartments, setNumDepartments] = useState(Math.max(1, initialUnits.length));
     const [unitNumbers, setUnitNumbers] = useState<string[]>(
         initialUnits.length > 0 ? [...initialUnits] : ['']
@@ -282,61 +279,14 @@ export default function EscenarioClient({
     // ── Valid units (needed before reservation handlers) ──
     const validUnits = useMemo(() => unitData.filter((u): u is UnitData => u !== null), [unitData]);
 
-    // ── Reservation handlers ─────────────────────────
-    const handleLeadPicked = useCallback((pickedLeadId: string, pickedLeadName: string) => {
-        setSelectedLeadId(pickedLeadId);
-        setSelectedLeadName(pickedLeadName);
-        setConfirmOpen(true);
-    }, []);
-
-    const handleReserveUnits = useCallback(async () => {
-        if (validUnits.length === 0 || !selectedLeadId) return;
-        setReserving(true);
-        const results: { unitNumber: string; success: boolean; error?: string }[] = [];
-        try {
-            for (const unit of validUnits) {
-                try {
-                    const res = await fetch(`/api/units/${unit.id}/reserve`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ leadId: selectedLeadId }),
-                    });
-                    const result: RPCResult = await res.json();
-                    results.push({ unitNumber: unit.unit_number, success: result.success, error: result.error });
-                } catch (err) {
-                    results.push({ unitNumber: unit.unit_number, success: false, error: String(err) });
-                }
-            }
-            const successes = results.filter(r => r.success);
-            const failures = results.filter(r => !r.success);
-            let msg = `${successes.length} de ${results.length} unidades reservadas exitosamente.`;
-            if (failures.length > 0) {
-                msg += '\n\nErrores:\n' + failures.map(f => `• Unidad ${f.unitNumber}: ${f.error}`).join('\n');
-            }
-            alert(msg);
-            await refreshUser();
-        } catch (err) {
-            console.error('Reserve error:', err);
-            alert('Error al reservar unidades');
-        } finally {
-            setReserving(false);
-        }
-    }, [validUnits, selectedLeadId, refreshUser]);
-
-    const reserveDialogDescription = useMemo(() => {
-        const unitList = validUnits.map(u => u.unit_number).join(', ');
-        const leadLabel = selectedLeadName ?? (selectedLeadId ? selectedLeadId.slice(0, 8) + '...' : '');
-        return `Se reservarán ${validUnits.length} unidad(es): ${unitList}. Se vincularán con el lead: ${leadLabel}.`;
-    }, [validUnits, selectedLeadId, selectedLeadName]);
-
     // ── Parse payment conditions ─────────────────────
     const paymentConfig = useMemo(() => {
         const firstValidUnit = unitData.find((u) => u !== null) ?? null;
         return parsePaymentConditions(project?.payment_conditions, firstValidUnit);
     }, [project, unitData]);
 
-    // ── Compute results ──────────────────────────────
-    const results = useMemo(() => {
+    // ── Compute escenario results ─────────────────────
+    const escenarioResults = useMemo(() => {
         if (validUnits.length === 0 || ufValue <= 0) return null;
         return computeEscenario({
             clientName,
@@ -353,6 +303,81 @@ export default function EscenarioClient({
             installmentsTC: paymentConfig.installmentsTC,
         });
     }, [validUnits, ufValue, clientName, abonoMinimo, abonoExtra, plazoCreditoYears, tasaBanco, cuotonMaximoPct, plusvaliaPct, paymentConfig]);
+
+    // ── Reservation handlers ─────────────────────────
+
+    const handleReserveUnits = useCallback(async () => {
+        if (validUnits.length === 0 || !selectedLeadId) return;
+        setReserving(true);
+        const reserveResults: { unitNumber: string; success: boolean; error?: string }[] = [];
+        try {
+            for (const unit of validUnits) {
+                try {
+                    const res = await fetch(`/api/units/${unit.id}/reserve`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ leadId: selectedLeadId }),
+                    });
+                    const result: RPCResult = await res.json();
+                    reserveResults.push({ unitNumber: unit.unit_number, success: result.success, error: result.error });
+                } catch (err) {
+                    reserveResults.push({ unitNumber: unit.unit_number, success: false, error: String(err) });
+                }
+            }
+            const successes = reserveResults.filter(r => r.success);
+            const failures = reserveResults.filter(r => !r.success);
+
+            // Save escenario snapshot if at least one unit reserved successfully
+            if (successes.length > 0 && escenarioResults) {
+                try {
+                    await fetch('/api/escenarios', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            leadId: selectedLeadId,
+                            projectId,
+                            unitIds: validUnits.map(u => u.id),
+                            inputs: {
+                                clientName,
+                                unitNumbers: validUnits.map(u => u.unit_number),
+                                abonoMinimo,
+                                abonoExtra,
+                                plazoCreditoYears,
+                                tasaBanco,
+                                cuotonMaximoPct,
+                                plusvaliaPct,
+                                ufToday: ufValue,
+                                reservationPerUnit: paymentConfig.reservationAmount,
+                                installmentsToku: paymentConfig.installmentsToku,
+                                installmentsTC: paymentConfig.installmentsTC,
+                            },
+                            results: escenarioResults,
+                        }),
+                    });
+                } catch (err) {
+                    console.error('Error saving escenario:', err);
+                }
+            }
+
+            let msg = `${successes.length} de ${reserveResults.length} unidades reservadas exitosamente.`;
+            if (failures.length > 0) {
+                msg += '\n\nErrores:\n' + failures.map(f => `• Unidad ${f.unitNumber}: ${f.error}`).join('\n');
+            }
+            alert(msg);
+            await refreshUser();
+        } catch (err) {
+            console.error('Reserve error:', err);
+            alert('Error al reservar unidades');
+        } finally {
+            setReserving(false);
+        }
+    }, [validUnits, selectedLeadId, refreshUser, escenarioResults, projectId, clientName, abonoMinimo, abonoExtra, plazoCreditoYears, tasaBanco, cuotonMaximoPct, plusvaliaPct, ufValue, paymentConfig]);
+
+    const reserveDialogDescription = useMemo(() => {
+        const unitList = validUnits.map(u => u.unit_number).join(', ');
+        const leadLabel = selectedLeadName ?? (selectedLeadId ? selectedLeadId.slice(0, 8) + '...' : '');
+        return `Se reservarán ${validUnits.length} unidad(es): ${unitList}. Se vincularán con el lead: ${leadLabel}.`;
+    }, [validUnits, selectedLeadId, selectedLeadName]);
 
     if (!project) {
         return (
@@ -442,14 +467,31 @@ export default function EscenarioClient({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-5">
-                            {/* Client Name */}
+                            {/* Client (Lead) Selector */}
                             <div>
-                                <label className="text-sm text-gray-500 block mb-1">Nombre Cliente</label>
-                                <Input
-                                    value={clientName}
-                                    onChange={(e) => setClientName(e.target.value)}
-                                    placeholder="Nombre del cliente"
-                                />
+                                <label className="text-sm text-gray-500 block mb-1">Cliente</label>
+                                <Select
+                                    value={selectedLeadId ?? ''}
+                                    onValueChange={(id) => {
+                                        const lead = leads.find(l => l.id === id);
+                                        if (lead) {
+                                            setSelectedLeadId(lead.id);
+                                            setSelectedLeadName(lead.full_name);
+                                            setClientName(lead.full_name);
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccione un cliente" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {leads.map((lead) => (
+                                            <SelectItem key={lead.id} value={lead.id}>
+                                                {lead.full_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             {/* Number of Departments */}
@@ -599,7 +641,7 @@ export default function EscenarioClient({
                                 <p className="text-gray-500">Ingrese un número de departamento válido para ver los resultados del escenario.</p>
                             </CardContent>
                         </Card>
-                    ) : results && (
+                    ) : escenarioResults && (
                         <>
                             {/* ── Escenario Express Table ── */}
                             <Card>
@@ -658,19 +700,19 @@ export default function EscenarioClient({
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                             <div className="bg-gray-50 rounded-lg p-3">
                                                 <p className="text-xs text-gray-500 uppercase tracking-wide">Reserva</p>
-                                                <p className="text-lg font-semibold mt-1">{fmtCLP(results.reservationVal)}</p>
+                                                <p className="text-lg font-semibold mt-1">{fmtCLP(escenarioResults.reservationVal)}</p>
                                             </div>
                                             <div className="bg-gray-50 rounded-lg p-3">
                                                 <p className="text-xs text-gray-500 uppercase tracking-wide">Abono</p>
-                                                <p className="text-lg font-semibold mt-1">{fmtCLP(results.abono)}</p>
+                                                <p className="text-lg font-semibold mt-1">{fmtCLP(escenarioResults.abono)}</p>
                                             </div>
                                             <div className="bg-gray-50 rounded-lg p-3">
                                                 <p className="text-xs text-gray-500 uppercase tracking-wide">PIE Total</p>
-                                                <p className="text-lg font-semibold mt-1">{fmtCLP(results.pieTotalVal)}</p>
+                                                <p className="text-lg font-semibold mt-1">{fmtCLP(escenarioResults.pieTotalVal)}</p>
                                             </div>
                                             <div className="bg-primary-50 rounded-lg p-3 border border-primary-200">
                                                 <p className="text-xs text-primary-600 uppercase tracking-wide font-medium">PIE Pendiente</p>
-                                                <p className="text-lg font-bold text-primary-700 mt-1">{fmtCLP(results.piePendingVal)}</p>
+                                                <p className="text-lg font-bold text-primary-700 mt-1">{fmtCLP(escenarioResults.piePendingVal)}</p>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -701,8 +743,8 @@ export default function EscenarioClient({
                                                     <TableBody>
                                                         <TableRow>
                                                             <TableCell>{paymentConfig.option1Name}</TableCell>
-                                                            <TableCell className="text-right">{fmtCLP(results.option1.cuota)}</TableCell>
-                                                            <TableCell className="text-right font-medium">{fmtCLP(results.option1.total)}</TableCell>
+                                                            <TableCell className="text-right">{fmtCLP(escenarioResults.option1.cuota)}</TableCell>
+                                                            <TableCell className="text-right font-medium">{fmtCLP(escenarioResults.option1.total)}</TableCell>
                                                         </TableRow>
                                                     </TableBody>
                                                 </Table>
@@ -714,7 +756,7 @@ export default function EscenarioClient({
                                             <h4 className="text-sm font-medium text-gray-700 mb-2">
                                                 Opción 2: {paymentConfig.installmentsToku + paymentConfig.installmentsTC} Cuotas ({paymentConfig.option2PartAName} + {paymentConfig.option2PartBName})
                                             </h4>
-                                            {results.cuotonValidation.valid ? (
+                                            {escenarioResults.cuotonValidation.valid ? (
                                                 <div className="border rounded-lg overflow-auto">
                                                     <Table>
                                                         <TableHeader>
@@ -727,18 +769,18 @@ export default function EscenarioClient({
                                                         <TableBody>
                                                             <TableRow>
                                                                 <TableCell>{paymentConfig.option2PartAName}</TableCell>
-                                                                <TableCell className="text-right">{fmtCLP(results.option2.toku.cuota)}</TableCell>
-                                                                <TableCell className="text-right">{fmtCLP(results.option2.toku.total)}</TableCell>
+                                                                <TableCell className="text-right">{fmtCLP(escenarioResults.option2.toku.cuota)}</TableCell>
+                                                                <TableCell className="text-right">{fmtCLP(escenarioResults.option2.toku.total)}</TableCell>
                                                             </TableRow>
                                                             <TableRow>
                                                                 <TableCell>{paymentConfig.option2PartBName}</TableCell>
-                                                                <TableCell className="text-right">{fmtCLP(results.option2.tc.cuota)}</TableCell>
-                                                                <TableCell className="text-right">{fmtCLP(results.option2.tc.total)}</TableCell>
+                                                                <TableCell className="text-right">{fmtCLP(escenarioResults.option2.tc.cuota)}</TableCell>
+                                                                <TableCell className="text-right">{fmtCLP(escenarioResults.option2.tc.total)}</TableCell>
                                                             </TableRow>
                                                             <TableRow className="bg-gray-50 font-medium">
                                                                 <TableCell>Total</TableCell>
                                                                 <TableCell className="text-right">-</TableCell>
-                                                                <TableCell className="text-right">{fmtCLP(results.option2.grandTotal)}</TableCell>
+                                                                <TableCell className="text-right">{fmtCLP(escenarioResults.option2.grandTotal)}</TableCell>
                                                             </TableRow>
                                                         </TableBody>
                                                     </Table>
@@ -747,7 +789,7 @@ export default function EscenarioClient({
                                                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                                                     <p className="text-sm text-red-600 flex items-center gap-2">
                                                         <AlertCircle className="h-4 w-4" />
-                                                        {results.cuotonValidation.message} — ajuste el porcentaje de cuotón
+                                                        {escenarioResults.cuotonValidation.message} — ajuste el porcentaje de cuotón
                                                     </p>
                                                 </div>
                                             )}
@@ -774,7 +816,7 @@ export default function EscenarioClient({
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {results.unitCashFlows.map((cf) => (
+                                                    {escenarioResults.unitCashFlows.map((cf) => (
                                                         <TableRow key={cf.unit_number}>
                                                             <TableCell className="font-medium">{cf.unit_number}</TableCell>
                                                             <TableCell className="text-right">{fmtCLP(cf.arriendo)}</TableCell>
@@ -786,8 +828,8 @@ export default function EscenarioClient({
                                                     ))}
                                                     <TableRow className="bg-gray-50 font-semibold">
                                                         <TableCell colSpan={3} className="text-right">Flujo Total:</TableCell>
-                                                        <TableCell className={`text-right ${results.totalFlujo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                            {fmtCLP(results.totalFlujo)}
+                                                        <TableCell className={`text-right ${escenarioResults.totalFlujo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {fmtCLP(escenarioResults.totalFlujo)}
                                                         </TableCell>
                                                     </TableRow>
                                                 </TableBody>
@@ -807,7 +849,7 @@ export default function EscenarioClient({
                                 </CardHeader>
                                 {expandedSections.scenarios && (
                                     <CardContent className="space-y-6">
-                                        {results.scenarios.map((s) => (
+                                        {escenarioResults.scenarios.map((s) => (
                                             <div key={s.unit_number}>
                                                 <div className="mb-2">
                                                     <div className="flex items-center gap-2 mb-1">
@@ -860,11 +902,11 @@ export default function EscenarioClient({
                                         <div className="grid grid-cols-2 gap-4 mb-4">
                                             <div className="bg-gray-50 rounded-lg p-3">
                                                 <p className="text-xs text-gray-500 uppercase tracking-wide">PIE Total</p>
-                                                <p className="text-lg font-semibold mt-1">{fmtCLP(results.pieTotalVal)}</p>
+                                                <p className="text-lg font-semibold mt-1">{fmtCLP(escenarioResults.pieTotalVal)}</p>
                                             </div>
                                             <div className="bg-gray-50 rounded-lg p-3">
                                                 <p className="text-xs text-gray-500 uppercase tracking-wide">Patrimonio Total</p>
-                                                <p className="text-lg font-semibold mt-1">{fmtCLP(results.patrimonioVal)}</p>
+                                                <p className="text-lg font-semibold mt-1">{fmtCLP(escenarioResults.patrimonioVal)}</p>
                                             </div>
                                         </div>
                                         <p className="text-sm text-gray-600 mb-3">Plusvalía: {fmtPct(plusvaliaPct)}</p>
@@ -881,7 +923,7 @@ export default function EscenarioClient({
                                                         <TableRow key={yr}>
                                                             <TableCell>Año {yr}</TableCell>
                                                             <TableCell className="text-right font-medium">
-                                                                {fmtCLP(results.wealth.yearlyValues[yr])}
+                                                                {fmtCLP(escenarioResults.wealth.yearlyValues[yr])}
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}
@@ -890,7 +932,7 @@ export default function EscenarioClient({
                                         </div>
                                         <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                                             <p className="text-xs text-green-600 uppercase tracking-wide font-medium">Ganancia Proyectada (5 años)</p>
-                                            <p className="text-2xl font-bold text-green-700 mt-1">{fmtCLP(results.wealth.ganancia)}</p>
+                                            <p className="text-2xl font-bold text-green-700 mt-1">{fmtCLP(escenarioResults.wealth.ganancia)}</p>
                                         </div>
                                     </CardContent>
                                 )}
@@ -932,7 +974,7 @@ export default function EscenarioClient({
                                 if (selectedLeadId) {
                                     setConfirmOpen(true);
                                 } else {
-                                    setLeadPickerOpen(true);
+                                    alert('Seleccione un cliente primero');
                                 }
                             }}
                         >
@@ -941,13 +983,6 @@ export default function EscenarioClient({
                     </div>
                 </div>
             )}
-
-            {/* Lead picker dialog */}
-            <LeadPickerDialog
-                open={leadPickerOpen}
-                onOpenChange={setLeadPickerOpen}
-                onSelect={handleLeadPicked}
-            />
 
             {/* Confirm reservation dialog */}
             <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

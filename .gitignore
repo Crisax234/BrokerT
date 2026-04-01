@@ -5,3 +5,8 @@ supabase/migrations/
 supabase/migrations_for_old/
 
 docs/
+
+# Local / temporary files
+.playwright-mcp/
+Stock Paz - Futura.xlsm
+.claude/settings.local.json

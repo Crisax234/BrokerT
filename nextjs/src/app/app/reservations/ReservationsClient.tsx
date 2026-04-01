@@ -4,7 +4,9 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KanbanColumn, PIPELINE_STAGES } from '@/components/crm/reservations/KanbanColumn';
+import { ReservationsTable } from '@/components/crm/reservations/ReservationsTable';
 import dynamic from 'next/dynamic';
 import type { EnrichedLeadData, ReservationRow } from '@/components/crm/reservations/types';
 import type { RPCResult } from '@/lib/crm-types';
@@ -14,15 +16,30 @@ const ClientDetailView = dynamic(
     { ssr: false }
 );
 
+export type SavedEscenario = {
+    id: string;
+    lead_id: string | null;
+    project_id: string;
+    unit_ids: string[];
+    inputs: Record<string, unknown>;
+    results: Record<string, unknown>;
+    created_at: string;
+};
+
 interface ReservationsClientProps {
     initialLeads: EnrichedLeadData[];
     initialUnitCounts: Record<string, number>;
+    initialReservations: ReservationRow[];
+    initialEscenarios: Record<string, unknown>[];
 }
 
-export default function ReservationsClient({ initialLeads, initialUnitCounts }: ReservationsClientProps) {
+export default function ReservationsClient({ initialLeads, initialUnitCounts, initialReservations, initialEscenarios }: ReservationsClientProps) {
     const { refreshUser } = useGlobal();
     const [leads, setLeads] = useState<EnrichedLeadData[]>(initialLeads);
     const [loading] = useState(false);
+    const [view, setView] = useState<'kanban' | 'tabla'>('kanban');
+    const [allReservations, setAllReservations] = useState<ReservationRow[]>(initialReservations);
+    const [escenarios] = useState<SavedEscenario[]>(initialEscenarios as unknown as SavedEscenario[]);
 
     // Sheet state
     const [selectedLead, setSelectedLead] = useState<EnrichedLeadData | null>(null);
@@ -130,11 +147,18 @@ export default function ReservationsClient({ initialLeads, initialUnitCounts }: 
                 alert('Unidad liberada exitosamente');
                 await refreshUser();
                 fetchUnitCounts();
-                // Refresh sheet reservations
-                if (selectedLead) {
-                    const resReservations = await fetch(`/api/leads/${selectedLead.id}/reservations`);
-                    const json = await resReservations.json();
+                // Refresh sheet reservations + all reservations (for table view)
+                const [sheetRes, allRes] = await Promise.all([
+                    selectedLead ? fetch(`/api/leads/${selectedLead.id}/reservations`) : null,
+                    fetch('/api/reservations'),
+                ]);
+                if (sheetRes) {
+                    const json = await sheetRes.json();
                     setSheetReservations((json.data as unknown as ReservationRow[]) ?? []);
+                }
+                if (allRes) {
+                    const json = await allRes.json();
+                    setAllReservations(json.data ?? []);
                 }
             } else {
                 alert(`Error: ${result.error ?? 'Error desconocido'}`);
@@ -160,11 +184,18 @@ export default function ReservationsClient({ initialLeads, initialUnitCounts }: 
                 alert('Unidad marcada como vendida!');
                 await refreshUser();
                 fetchUnitCounts();
-                // Refresh sheet reservations
-                if (selectedLead) {
-                    const resReservations = await fetch(`/api/leads/${selectedLead.id}/reservations`);
-                    const json = await resReservations.json();
+                // Refresh sheet reservations + all reservations (for table view)
+                const [sheetRes, allRes] = await Promise.all([
+                    selectedLead ? fetch(`/api/leads/${selectedLead.id}/reservations`) : null,
+                    fetch('/api/reservations'),
+                ]);
+                if (sheetRes) {
+                    const json = await sheetRes.json();
                     setSheetReservations((json.data as unknown as ReservationRow[]) ?? []);
+                }
+                if (allRes) {
+                    const json = await allRes.json();
+                    setAllReservations(json.data ?? []);
                 }
             } else {
                 alert(`Error: ${result.error ?? 'Error desconocido'}`);
@@ -187,13 +218,21 @@ export default function ReservationsClient({ initialLeads, initialUnitCounts }: 
 
     return (
         <div className="p-4 space-y-4">
-            <h1 className="text-2xl font-bold">Mis Clientes</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold">Mis Clientes</h1>
+                <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'tabla')}>
+                    <TabsList>
+                        <TabsTrigger value="kanban">Kanban</TabsTrigger>
+                        <TabsTrigger value="tabla">Tabla</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
 
             {leads.length === 0 ? (
                 <div className="flex items-center justify-center min-h-[40vh] text-muted-foreground">
                     No tienes clientes reservados.
                 </div>
-            ) : (
+            ) : view === 'kanban' ? (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <div className="flex gap-2 overflow-x-auto pb-4">
                         {PIPELINE_STAGES.map((stage) => (
@@ -209,6 +248,13 @@ export default function ReservationsClient({ initialLeads, initialUnitCounts }: 
                         ))}
                     </div>
                 </DragDropContext>
+            ) : (
+                <ReservationsTable
+                    leads={leads}
+                    allReservations={allReservations}
+                    escenarios={escenarios}
+                    onRowClick={handleCardClick}
+                />
             )}
 
             {/* Client detail sheet */}

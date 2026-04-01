@@ -11,10 +11,11 @@ export default async function EscenarioPage({ params, searchParams }: Props) {
     const { units, leadId } = await searchParams;
 
     const client = await createSSRSassClient();
-    const [projectResult, ufResult, unitNumbersResult] = await Promise.all([
+    const [projectResult, ufResult, unitNumbersResult, leadsResult] = await Promise.all([
         client.getProjectById(projectId),
         client.getLatestUFValue(),
         client.getProjectUnitNumbers(projectId),
+        client.getMyReservedLeads(),
     ]);
 
     const initialUnits = units ? units.split(',').filter(Boolean) : [];
@@ -27,6 +28,7 @@ export default async function EscenarioPage({ params, searchParams }: Props) {
             initialUnitLookup={unitNumbersResult.data ?? []}
             initialUnits={initialUnits}
             initialLeadId={leadId ?? null}
+            initialLeads={leadsResult.data ?? []}
         />
     );
 }

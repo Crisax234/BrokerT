@@ -169,7 +169,7 @@ export class SassClient {
             .from('leads')
             .select('id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at, pipeline_stage')
             .eq('reserved_by', user.id)
-            .eq('status', 'reserved')
+            .in('status', ['reserved', 'contacted', 'meeting_set', 'in_progress', 'converted'])
             .order('reserved_at', { ascending: false });
     }
 
@@ -188,7 +188,7 @@ export class SassClient {
         if (!user) return { data: null, error: { message: 'Not authenticated' } };
         return this.client
             .from('reservations')
-            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at)')
+            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at, pipeline_stage)')
             .eq('seller_id', user.id)
             .eq('lead_id', leadId)
             .order('reserved_at', { ascending: false });
@@ -303,9 +303,62 @@ export class SassClient {
         if (!user) return { data: null, error: { message: 'Not authenticated' } };
         return this.client
             .from('reservations')
-            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at)')
+            .select('*, units!reservations_unit_id_fkey(unit_number, typology, final_price, surface_useful, projects(name, commune, real_estate_companies(name, display_name))), leads!reservations_lead_id_fkey(id, full_name, email, phone, rut, occupation, current_commune, liquidaciones, honorarios, arriendos, retiros, cuota_credito_consumo, dividendo_actual, bancarizado, ahorros, meeting_at, age, quality_tier, score, status, reserved_at, pipeline_stage)')
             .eq('seller_id', user.id)
             .order('reserved_at', { ascending: false });
+    }
+
+    // ── CRM: Saved Escenarios ─────────────────────────────────
+
+    // Note: saved_escenarios uses 'as any' because the table is not yet in auto-generated types.
+    // Regenerate types after applying the migration to remove these casts.
+
+    async saveEscenario(data: {
+        leadId: string | null;
+        projectId: string;
+        unitIds: string[];
+        inputs: Record<string, unknown>;
+        results: Record<string, unknown>;
+    }) {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return { data: null, error: { message: 'Not authenticated' } };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.client as any)
+            .from('saved_escenarios')
+            .insert({
+                seller_id: user.id,
+                lead_id: data.leadId,
+                project_id: data.projectId,
+                unit_ids: data.unitIds,
+                inputs: data.inputs,
+                results: data.results,
+            })
+            .select()
+            .single();
+    }
+
+    async getLatestEscenarioForLeads(leadIds: string[]) {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return { data: null, error: { message: 'Not authenticated' } };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.client as any)
+            .from('saved_escenarios')
+            .select('id, lead_id, project_id, unit_ids, inputs, results, created_at')
+            .eq('seller_id', user.id)
+            .in('lead_id', leadIds)
+            .order('created_at', { ascending: false });
+    }
+
+    async getEscenarioById(escenarioId: string) {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (!user) return { data: null, error: { message: 'Not authenticated' } };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.client as any)
+            .from('saved_escenarios')
+            .select('*')
+            .eq('id', escenarioId)
+            .eq('seller_id', user.id)
+            .single();
     }
 
     // ── CRM: UF Values ──────────────────────────────────────
